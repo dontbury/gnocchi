@@ -39,11 +39,14 @@ func ( accs *Accounts ) Connection( w http.ResponseWriter, r *http.Request ) *Co
 	cookie, cerr := r.Cookie( COOKIE_NAME )
 	if cerr != nil {
 		log.Printf( "wgp.Accounts.Connection r.Cookie cerr:%#v.", cerr )	// 取得できなかったら作るので、抜けない
+		u := uuid.NewV4()
+/*	返り値の数が変更になったらしい 2022.05.03
 		u, err := uuid.NewV4()
 		if err != nil {
 			log.Printf( "wgp.Accounts.Connection uuid.NewV4() failure u:%v, err:%v.", u, err )
 			return nil
 		}
+*/
 		sid = u.String()
 		c := accs.conns[ sid ]
 		if c != nil {

@@ -147,7 +147,7 @@ func ( strStk *StringStocker ) createStrMap( bckt *bkt.Bucket, name, path string
 	return nil
 }
 
-func (strStk *StringStocker) String( category string, index int ) ( string, error ) {
+func ( strStk *StringStocker ) String( category string, index int ) ( string, error ) {
 	if c, ok := strStk.ctry[ category ]; !ok {
 		return "", fmt.Errorf( "stk.GetString:invalid category:%q, index:%d.", category, index  )
 	} else if s, ok := c.smp[ index ]; !ok {
@@ -157,7 +157,7 @@ func (strStk *StringStocker) String( category string, index int ) ( string, erro
 	}
 }
 
-func (strStk *StringStocker) GetString( category string, index int ) string {
+func ( strStk *StringStocker ) GetString( category string, index int ) string {
 	str, _ := strStk.String( category, index )
 	return str
 }
@@ -176,6 +176,15 @@ func ( strStk *StringStocker ) Dump( w io.Writer ) {
 		fmt.Fprintf( w, "CATEGORY key:%s, body%v\n", key, v )
 		for i, s := range v.smp {
 			fmt.Fprintf( w, "  STRING i:%3d, str:%s\n", i, s )
+		}
+	}
+}
+
+func ( strStk *StringStocker ) LogAll() {
+	for key, v := range strStk.ctry {
+		log.Printf( "CATEGORY key:%s, body%v\n", key, v )
+		for i, s := range v.smp {
+			log.Printf( "  STRING i:%3d, str:%s\n", i, s )
 		}
 	}
 }

@@ -1,4 +1,4 @@
-module gnocchi
+module prj/gnocchi
 
 go 1.18
 
