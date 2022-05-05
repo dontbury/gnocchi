@@ -5,9 +5,10 @@ import (
 	"log"
 	"bytes"
 	"strings"
+	"context"
 
 	"cloud.google.com/go/storage"
-	"golang.org/x/net/context"
+//	"golang.org/x/net/context"
 )
 
 type Bucket struct {

@@ -39,7 +39,7 @@ func Create( bckt *bkt.Bucket, path string ) ( *StringStocker, error ) {
 	log.Println( "Start stk.ReadData." )
 	buf, err := bckt.ReadLine( path )
 	if err != nil {
-		return nil, fmt.Errorf( "stk.Create:bkt.Bucket.ReadLine failure bckt:%v err:%v.", bckt, err )
+		return nil, fmt.Errorf( "stk.Create:bkt.Bucket.ReadLine failure bckt:%v.\n\t%v.", bckt, err )
 	}
 	lineNum := len( buf )
 	if lineNum <= 0 {
