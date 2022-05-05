@@ -7,7 +7,7 @@ import (
 	"io"
 	"math"
 
-	"gnocchi/bkt"
+	"github.com/dontbury/gnocchi/bkt"
 )
 
 // 文字列マネージャー設定ファイル列名

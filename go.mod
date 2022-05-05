@@ -2,9 +2,12 @@ module gnocchi
 
 go 1.18
 
+replace github.com/dontbury/gnocchi v1.1.1 => ../gnocchi
+
 require (
 	cloud.google.com/go/datastore v1.6.0
 	cloud.google.com/go/storage v1.22.0
+	github.com/dontbury/gnocchi v1.1.1
 	github.com/gorilla/websocket v1.5.0
 	github.com/satori/go.uuid v1.2.0
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4

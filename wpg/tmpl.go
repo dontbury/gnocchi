@@ -6,7 +6,7 @@ import (
 	"text/template"
 	"net/url"
 
-	"gnocchi/bkt"
+	"github.com/dontbury/gnocchi/bkt"
 )
 
 const (
