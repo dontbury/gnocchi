@@ -37,10 +37,9 @@ type StringStocker struct {
 
 func Create( bckt *bkt.Bucket, path string ) ( *StringStocker, error ) {
 	log.Println( "Start stk.ReadData." )
-	defer log.Println( "End stk.ReadData." )
 	buf, err := bckt.ReadLine( path )
 	if err != nil {
-		return nil, fmt.Errorf( "stk.Create:bkt.Bucket.ReadLine failure bckt:%v.", bckt )
+		return nil, fmt.Errorf( "stk.Create:bkt.Bucket.ReadLine failure bckt:%v err:%v.", bckt, err )
 	}
 	lineNum := len( buf )
 	if lineNum <= 0 {
@@ -58,6 +57,7 @@ func Create( bckt *bkt.Bucket, path string ) ( *StringStocker, error ) {
 			return mgr, fmt.Errorf( "stk.Create:stk.createStrMap failure lineNum:%d, i:%d, buf:%q, file:%q.\n\t%v", lineNum, i, buf[i], file, err )
 		}
 	}
+	log.Println( "Complete stk.ReadData." )
 	return mgr, nil
 }
 
