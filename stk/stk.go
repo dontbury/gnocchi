@@ -7,7 +7,7 @@ import (
 	"io"
 	"math"
 
-	"depot/gae/gnocchi/bkt"
+	"gnocchi/bkt"
 )
 
 // 文字列マネージャー設定ファイル列名

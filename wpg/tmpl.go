@@ -8,7 +8,7 @@ import (
 	"net/url"
 
 //	"github.com/dontbury/gnocchi/bkt"
-	"depot/gae/gnocchi/bkt"
+	"gnocchi/bkt"
 )
 
 const (
