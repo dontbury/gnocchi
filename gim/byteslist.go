@@ -10,7 +10,6 @@ type BytesList struct {
 	next *BytesList
 }
 
-
 func CreateBytesList( size int ) *BytesList {
 	b := BytesList{
 		bytes: make( []Bytes, size ),

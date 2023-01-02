@@ -35,6 +35,7 @@ func ( accs *Accounts ) Create( size int ) {
 	accs.size = size
 	accs.conns = make( map[ string ]*Conn, size )
 	accs.icons = make( map[ int64 ]*Conn, size )
+log.Printf( "wpg.Accounts.Create:accs.conns:%v accs.icons:%v size:%d.", accs.conns, accs.icons, size )
 }
 
 func ( accs *Accounts ) Connection( w http.ResponseWriter, r *http.Request ) *Conn {
@@ -108,12 +109,18 @@ func ( accs *Accounts ) AppendConn( con *Conn ) {
 				}
 			}
 			if lastCon != nil {
-				delete( accs.icons, lastCon.Acc.ID )
-				log.Printf( "lastCon:%v ejected icons size:%d.", lastCon, len( accs.icons ) )
+				if lastCon.Acc != nil {
+					delete( accs.icons, lastCon.Acc.ID )
+					log.Printf( "lastCon:%v ejected icons size:%d.", lastCon, len( accs.icons ) )
+				}
 			}
 		}
+log.Printf( "wpg.Accounts.AppendConn:con:%v.", con )
 		accs.conns[ con.Sid ] = con
-		accs.icons[ con.Acc.ID ] = con
+		if con.Acc != nil {
+log.Printf( "wpg.Accounts.AppendConn:con.Acc:%v.", con.Acc )
+			accs.icons[ con.Acc.ID ] = con
+		}
 	} else {
 		log.Print( "wpg.Accounts.AppendConn:con is nil." )
 	}

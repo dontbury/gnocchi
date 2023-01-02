@@ -3,7 +3,7 @@ package wpg
 import (
 	"fmt"
 	"strings"
-//	"strconv"
+	"strconv"
 	"net/url"
 )
 
@@ -65,6 +65,7 @@ const	(
 	ACC_TYPE_USER
 )
 
+// HTML
 // HTML ALIGN
 const HTML_ALIGN = "align"
 const	(
@@ -74,12 +75,79 @@ const	(
 	HTML_ALIGN_LEFT = 3
 	HTML_ALIGN_RIGHT = 4
 )
+// HTML FORM METHOD
+const (
+	HTML_FORM_METHOD_NONE = 0
+	HTML_FORM_METHOD_GET = 1
+	HTML_FORM_METHOD_POST = 2
+)
+// HTML INPUT TYPE
+const (
+	HTML_INPUT_TYPE_NONE = 0
+	HTML_INPUT_TYPE_TEXT = 1
+	HTML_INPUT_TYPE_PASSWORD = 2
+	HTML_INPUT_TYPE_RADIO = 3
+	HTML_INPUT_TYPE_CHECKBOX = 4
+	HTML_INPUT_TYPE_FILE = 5
+	HTML_INPUT_TYPE_HIDDEN = 6
+	HTML_INPUT_TYPE_SUBMIT = 7
+	HTML_INPUT_TYPE_IMAGE = 8
+	HTML_INPUT_TYPE_RESET = 9
+	HTML_INPUT_TYPE_BUTTON = 10
+)
+
+type HtmlTag interface {
+	Str() ( string, error )
+}
 
 type SlctOpt struct {
 	Val string
 	Cap string
 	Slct bool
 	Dsbl bool
+}
+
+type PlainText struct {
+	Text string
+}
+
+type HtmlNbsp struct {
+}
+
+type HtmlBr struct {
+}
+
+type HtmlHr struct {
+}
+
+type HtmlForm struct {
+	Action string
+	Method int
+	Id string
+	Body []HtmlTag
+}
+
+type HtmlLabel struct {
+	For string
+	Body []HtmlTag
+}
+
+type HtmlAbbr struct {
+	Title string
+	Body string
+}
+
+type HtmlInput struct {
+	Type int
+	Name string
+	Placeholder string
+	Size int
+	Minlength int
+	Maxlength int
+	Cls string
+	Id string
+	Value string
+	Required bool
 }
 
 type HtmlTh struct {
@@ -106,6 +174,15 @@ type HtmlTbl struct {
 	Cpt *HtmlCpt
 	Hdrs []HtmlTh
 	Bdy []HtmlTr
+}
+
+type HtmlA struct {
+	Path string
+	Args url.Values
+	Cpt string
+	Id string
+	Cls string
+	Disable bool
 }
 
 func EscapeHTML( src string ) string {
@@ -221,66 +298,193 @@ func LinkArgsMapHTML( path, caption string, mapArg url.Values ) string {
 	return LinkHTML( path + arg, "", "", caption, true )
 }
 
-func ( s *HtmlTh )Str() string {
-	return "<th>" + s.Hd + "</th>"
+func ( s *PlainText )Str() ( string, error ) {
+	return s.Text, nil
 }
 
-func ( s *HtmlTd )Str() string {
-	str := "<td"
+func ( s *HtmlNbsp )Str() ( string, error ) {
+	return "&nbsp", nil
+}
+
+func ( s *HtmlBr )Str() ( string, error ) {
+	return "<br>", nil
+}
+
+func ( s *HtmlHr )Str() ( string, error ) {
+	return "<hr>", nil
+}
+
+func ( s *HtmlForm )Str() ( string, error ) {
+	str := "<form method=\""
+	switch( s.Method ) {
+		case HTML_FORM_METHOD_GET:
+			str += "GET\""
+		case HTML_FORM_METHOD_POST:
+			str += "POST\""
+		default:
+			return "", fmt.Errorf( "wpg.HtmlForm.Str:Invalid Method:%d.", s.Method )
+	}
+	str += " action=\""+ s.Action + "\""
+	if len( s.Id ) > 0 { str += " id=\"" + s.Id + "\"" }
+	str += ">\n"
+	var v HtmlTag
+	var buf string
+	var i int
+	var err error
+	for i, v = range s.Body {
+		if v == nil { return "", fmt.Errorf( "wpg.HtmlForm.Str:v(%d) is nil.", i ) }
+		if buf, err = v.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlForm.Str:wpg.HtmlTag.Str failure:%v.\t\n", err ) }
+		str += buf + "\n"
+	}
+	return str + "</form>", nil
+}
+
+func ( s *HtmlLabel )Str() ( string, error ) {
+	str, buf := "", ""
+	var v HtmlTag
+	var i int
+	var err error
+	for i, v = range s.Body {
+		if v == nil { return "", fmt.Errorf( "wpg.HtmlLabel.Str:v(%d) is nil.", i ) }
+		if buf, err = v.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlLabel.Str:wpg.HtmlTag.Str failure:%v.\t\n", err ) }
+		str += buf
+	}
+	return  "<label for=\"" + s.For + "\">" + str + "</label>", nil
+}
+
+func ( s *HtmlAbbr )Str() ( string, error ) {
+	return  "<abbr title=\"" + s.Title + "\">" + s.Body + "</abbr>", nil
+}
+
+func ( s *HtmlInput )Str() ( string, error ) {
+	str := "type=\""
+	switch( s.Type ) {
+		case HTML_INPUT_TYPE_TEXT:
+			str += "text"
+		case HTML_INPUT_TYPE_PASSWORD:
+			str += "password"
+		case HTML_INPUT_TYPE_RADIO:
+			str += "radio"
+		case HTML_INPUT_TYPE_CHECKBOX:
+			str += "checkbox"
+		case HTML_INPUT_TYPE_FILE:
+			str += "file"
+		case HTML_INPUT_TYPE_HIDDEN:
+			str += "hidden"
+		case HTML_INPUT_TYPE_SUBMIT:
+			str += "submit"
+		case HTML_INPUT_TYPE_IMAGE:
+			str += "image"
+		case HTML_INPUT_TYPE_RESET:
+			str += "reset"
+		default:
+			return "", fmt.Errorf( "wpg.HtmlInput.Str:Invalid Type:%d.", s.Type )
+	}
+	str += "\" name=\"" + s.Name + "\""
+	if len( s.Placeholder ) > 0 { str += " placeholder=\"" + s.Placeholder + "\"" }
+	if s.Size > 0 { str += " size=\"" + strconv.Itoa( s.Size ) + "\"" }
+	if s.Minlength > 0 { str += " minlength=\"" + strconv.Itoa( s.Minlength ) + "\"" }
+	if s.Maxlength > 0 { str += " maxlength=\"" + strconv.Itoa( s.Maxlength ) + "\"" }
+	if len( s.Cls ) > 0 { str += " class=\"" + s.Cls + "\"" }
+	if len( s.Id ) > 0 { str += " id=\"" + s.Id + "\"" }
+	if len( s.Value ) > 0 { str += " value=\"" + s.Value + "\"" }
+	if s.Required { str += " required" }
+	return "<input " + str + ">", nil
+}
+
+func ( s *HtmlTh )Str() ( string, error ) {
+	return  "<th>" + s.Hd + "</td>", nil
+}
+
+func ( s *HtmlTd )Str() ( string, error ) {
+	str :=""
 	if len( s.Cls ) > 0 {
 		str += " class=\"" + s.Cls + "\""
 	}
-	str += ">"
-	return str + s.Dt + "</td>"
+	return  "<td" + str + ">" + s.Dt + "</td>", nil
 }
 
-func StrHtmlTblHdrs( hdrs *[]HtmlTh ) string {
-	str := "<tr>"
-	var v HtmlTh
-	for _, v = range *hdrs {
-		str += v.Str()
-	}
-	return str + "</tr>"
-}
-
-func ( row *HtmlTr )Str() string {
-	str := "<tr>"
+func ( row *HtmlTr )Str() ( string, error ) {
+	str, buf := "", ""
+	var err error
 	if row.Hd != nil {
-		str += row.Hd.Str()
+		if buf, err = row.Hd.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTr.Str:wpg.HtmlTh.Str failure %v.\t\n", err ) }
+		str += buf
 	}
 	var v HtmlTd
 	for _, v = range row.Row {
-		str += v.Str()
+		if buf, err = v.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTr.Str:wpg.HtmlTd.Str failure %v.\t\n", err ) }
+		str += buf
 	}
-	return str + "</tr>"
+	return "<tr>" + str + "</tr>", nil
 }
 
-func ( cpt *HtmlCpt )Str() string {
-	str := "<caption"
+func ( cpt *HtmlCpt )Str() ( string, error ) {
+	str := ""
 	switch ( cpt.Align ) {
 		case HTML_ALIGN_NONE:	// なにもしない
-		case HTML_ALIGN_TOP: str += " " + HTML_ALIGN + "=\"top\""
-		case HTML_ALIGN_BOTTOM: str += " " + HTML_ALIGN + "=\"bottom\""
-		case HTML_ALIGN_LEFT: str += " " + HTML_ALIGN + "=\"left\""
-		case HTML_ALIGN_RIGHT: str += " " + HTML_ALIGN + "=\"right\""
-		default: fmt.Errorf("wpg.HtmlCpt.Str:Invalid align:%d.", cpt.Align )
+		case HTML_ALIGN_TOP: str = " " + HTML_ALIGN + "=\"top\""
+		case HTML_ALIGN_BOTTOM: str = " " + HTML_ALIGN + "=\"bottom\""
+		case HTML_ALIGN_LEFT: str = " " + HTML_ALIGN + "=\"left\""
+		case HTML_ALIGN_RIGHT: str = " " + HTML_ALIGN + "=\"right\""
+		default: return "", fmt.Errorf("wpg.HtmlCpt.Str:Invalid align:%d.", cpt.Align )
 	}
-	return  str + ">" + cpt.Title + "</caption>"
+	return  "<caption" + str + ">" + cpt.Title + "</caption>", nil
 }
 
-func ( tbl *HtmlTbl )Str() string {
-	str := "<table"
+func ( tbl *HtmlTbl )Str() ( string, error ) {
+	str, buf := "<table", ""
+	var err error
 	if len( tbl.Cls ) > 0 {
 		str += " class=\"" + tbl.Cls + "\""
 	}
 	str += ">"
+
 	if tbl.Cpt != nil {
-		str += tbl.Cpt.Str()
+		if buf, err = tbl.Cpt.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTbl.Str:wpg.HtmlCpt.Str failure %v.\t\n", err ) }
+		str += buf
 	}
-	str += StrHtmlTblHdrs( &( tbl.Hdrs ) )
+	str += buf
+
+	var h HtmlTh
+	for _, h = range tbl.Hdrs {
+		if buf, err = h.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTbl.Str:wpg.HtmlTh.Str failure %v.\t\n", err ) }
+		str += buf
+	}
+
 	var v HtmlTr
 	for _, v = range tbl.Bdy {
-		str += v.Str()
+		if buf, err = v.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTbl.Str:wpg.HtmlTr.Str failure %v.\t\n", err ) }
+		str += buf
 	}
-	return str + "</table>"
+	return str + "</table>", nil
+}
+
+func ( a *HtmlA )Str() ( string, error ) {
+	str := ""
+	first := true
+	for key, v := range a.Args {
+		for _, s := range v {
+			if first {
+				str += "?"
+				first = false
+			} else {
+				str += "&"
+			}
+			str += key + "=" + s
+		}
+	}
+	str += "\""
+
+	if len( a.Id  ) > 0 {
+		str += " id=\"" + a.Id + "\""
+	}
+	if len( a.Cls  ) > 0 {
+		str += " class=\"" + a.Cls + "\""
+	}
+	if a.Disable {
+		str += " disabled"
+	}
+
+	return "<a href=\"/" + a.Path + str + ">" + a.Cpt + "</a>", nil
 }

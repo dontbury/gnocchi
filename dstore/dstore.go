@@ -48,14 +48,13 @@ func ( ds *DStore ) IDKeyGet( kind string, id int64, src interface{} ) ( *datast
 }
 
 func ( ds *DStore ) IncompleteKeyPut( kind string, src interface{} ) ( int64, error ) {
-	key := datastore.IncompleteKey( kind, nil )
-
-	if _, err := ds.Client.Put( ds.Ctx, key, src ); err != nil {
+	newkey := datastore.IncompleteKey( kind, nil )
+	if key, err := ds.Client.Put( ds.Ctx, newkey, src ); err != nil {
 		log.Fatalf( "IncompleteKeyPut:Failed to put: %#v", err )
 		return key.ID, err
+	} else {
+		return key.ID, nil
 	}
-
-	return key.ID, nil
 }
 
 func ( ds *DStore ) IDKeyPut( kind string, id int64, src interface{} ) ( int64, error ) {
