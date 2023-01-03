@@ -444,7 +444,6 @@ func ( tbl *HtmlTbl )Str() ( string, error ) {
 		if buf, err = tbl.Cpt.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTbl.Str:wpg.HtmlCpt.Str failure %v.\t\n", err ) }
 		str += buf
 	}
-	str += buf
 
 	var h HtmlTh
 	for _, h = range tbl.Hdrs {
