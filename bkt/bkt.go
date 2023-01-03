@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"cloud.google.com/go/storage"
-//	"golang.org/x/net/context"
 )
 
 type Bucket struct {

@@ -195,7 +195,7 @@ func ( ds *DStore ) GetAll( kind, sort string, parentKey *datastore.Key, dst int
 	return nil
 }
 
-// Keyを流用しながら、同時に2つのkindを追加
+// Keyを流用しながら、同時に2つのkindを削除
 func ( ds *DStore ) Delete( kind string, id int64 ) error {
 	key := datastore.IDKey( kind, id, nil )
 
