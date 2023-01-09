@@ -40,26 +40,21 @@ log.Printf( "wpg.Accounts.Create:accs.conns:%v accs.icons:%v size:%d.", accs.con
 
 func ( accs *Accounts ) Connection( w http.ResponseWriter, r *http.Request ) *Conn {
 	var sid string
-	cookie, cerr := r.Cookie( COOKIE_NAME )
-	if cerr != nil {
+	if cookie, cerr := r.Cookie( COOKIE_NAME ); cerr != nil {
 		log.Printf( "wgp.Accounts.Connection r.Cookie cerr:%#v.", cerr )	// 取得できなかったら作るので、抜けない
 		u := uuid.NewV4()
-/*	返り値の数が変更になったらしい 2022.05.03
-		u, err := uuid.NewV4()
-		if err != nil {
-			log.Printf( "wgp.Accounts.Connection uuid.NewV4() failure u:%v, err:%v.", u, err )
-			return nil
-		}
-*/
 		sid = u.String()
 		c := accs.conns[ sid ]
 		if c != nil {
-			log.Printf( "wgp.Accounts.Connection uuid.NewV4() sid:%q, already existed connection:%v.", sid, c )
+			log.Printf( "wgp.Accounts.Connection uuid.NewV4() sid:%q, already existed sit:%q connection:%v.", sid, c )
 			return nil
 		}
-		v := &http.Cookie{ Name:COOKIE_NAME, Value:sid, Path:"/" }
-		log.Printf( "wgp.Accounts.Connection new cookie:%v.", v )
-		http.SetCookie( w, v )
+		cookie.Name = COOKIE_NAME
+		cookie.Value = sid
+		cookie.Path = "/"
+//		ck := &http.Cookie{ Name:, Value:, Path:"/" }
+		log.Printf( "wgp.Accounts.Connection new cookie:%v.", cookie )
+		http.SetCookie( w, cookie )
 	} else if cookie != nil {
 		log.Printf( "wgp.Accounts.Connection get cookie:%v.", cookie )
 		con := accs.conns[ cookie.Value ]
@@ -88,27 +83,18 @@ func ( accs *Accounts ) CheckMax() bool {
 func ( accs *Accounts ) AppendConn( con *Conn ) {
 	if con != nil {
 		if len( accs.conns ) >= accs.size {// 接続数が上限に達していれば、最も古いものを一つだけリストから外す。
-			log.Printf( "conns size:%d.", len( accs.conns ) )
+			log.Printf( "conns size:%d max:%d.", len( accs.conns ), accs.size )
 			var lastCon *Conn = nil
-			for _, c := range accs.conns {
+			for _, c := range accs.conns {	// 最もアクセスの古いコネクションを取得
 				if lastCon == nil {
 					lastCon = c
 				} else if lastCon.Date.After( c.Date ) {
 					lastCon = c
 				}
 			}
-			if lastCon != nil {
+			if lastCon != nil {	// ありえないけど、念のため
 				delete( accs.conns, lastCon.Sid )
 				log.Printf( "lastCon:%v ejected conns size:%d.", lastCon, len( accs.conns ) )
-			}
-			for _, c := range accs.icons {
-				if lastCon == nil {
-					lastCon = c
-				} else if lastCon.Date.After( c.Date ) {
-					lastCon = c
-				}
-			}
-			if lastCon != nil {
 				if lastCon.Acc != nil {
 					delete( accs.icons, lastCon.Acc.ID )
 					log.Printf( "lastCon:%v ejected icons size:%d.", lastCon, len( accs.icons ) )
@@ -124,6 +110,22 @@ log.Printf( "wpg.Accounts.AppendConn:con.Acc:%v.", con.Acc )
 	} else {
 		log.Print( "wpg.Accounts.AppendConn:con is nil." )
 	}
+}
+
+func ( accs *Accounts ) UpdateConn( name, sid string ) error {
+	for _, c := range accs.conns {
+		if c != nil {
+			if c.Acc != nil {
+				if c.Acc.Name == name {	// すでに別のアカウントでログインしていた場合は、クッキーの参照元も更新する
+					delete( accs.conns, c.Sid )
+					accs.conns[ sid ] = c
+					c.Sid = sid
+					break
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func ( accs *Accounts ) GetConn( sid string ) ( *Conn, bool ) {
