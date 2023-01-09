@@ -49,8 +49,8 @@ func ( accs *Accounts ) Connection( w http.ResponseWriter, r *http.Request ) *Co
 			log.Printf( "wgp.Accounts.Connection uuid.NewV4() sid:%q, already existed sit:%q connection:%v.", sid, c )
 			return nil
 		}
-		ck := &http.Cookie{ Name:, Value:, Path:"/" }
-		log.Printf( "wgp.Accounts.Connection new cookie:%v.", ck )
+		ck := &http.Cookie{ Name:COOKIE_NAME, Value:sid, Path:"/" }
+		log.Printf( "wgp.Accounts.Connection new ck:%v.", ck )
 		http.SetCookie( w, ck )
 	} else if cookie != nil {
 		log.Printf( "wgp.Accounts.Connection get cookie:%v.", cookie )
