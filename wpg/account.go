@@ -28,14 +28,12 @@ type Conn struct {
 type Accounts struct {
 	size int
 	conns map[ string ]*Conn
-	icons map[ int64 ]*Conn
 }
 
 func ( accs *Accounts ) Create( size int ) {
 	accs.size = size
 	accs.conns = make( map[ string ]*Conn, size )
-	accs.icons = make( map[ int64 ]*Conn, size )
-log.Printf( "wpg.Accounts.Create:accs.conns:%v accs.icons:%v size:%d.", accs.conns, accs.icons, size )
+log.Printf( "wpg.Accounts.Create:accs.conns:%v size:%d.", accs.conns, size )
 }
 
 func ( accs *Accounts ) Connection( w http.ResponseWriter, r *http.Request ) *Conn {
@@ -46,7 +44,7 @@ func ( accs *Accounts ) Connection( w http.ResponseWriter, r *http.Request ) *Co
 		sid = u.String()
 		c := accs.conns[ sid ]
 		if c != nil {
-			log.Printf( "wgp.Accounts.Connection uuid.NewV4() sid:%q, already existed sit:%q connection:%v.", sid, c )
+			log.Printf( "wgp.Accounts.Connection uuid.NewV4() sid:%q, already existed sid:%q connection:%v.", sid, c )
 			return nil
 		}
 		ck := &http.Cookie{ Name:COOKIE_NAME, Value:sid, Path:"/" }
@@ -92,18 +90,10 @@ func ( accs *Accounts ) AppendConn( con *Conn ) {
 			if lastCon != nil {	// ありえないけど、念のため
 				delete( accs.conns, lastCon.Sid )
 				log.Printf( "lastCon:%v ejected conns size:%d.", lastCon, len( accs.conns ) )
-				if lastCon.Acc != nil {
-					delete( accs.icons, lastCon.Acc.ID )
-					log.Printf( "lastCon:%v ejected icons size:%d.", lastCon, len( accs.icons ) )
-				}
 			}
 		}
 log.Printf( "wpg.Accounts.AppendConn:con:%v.", con )
 		accs.conns[ con.Sid ] = con
-		if con.Acc != nil {
-log.Printf( "wpg.Accounts.AppendConn:con.Acc:%v.", con.Acc )
-			accs.icons[ con.Acc.ID ] = con
-		}
 	} else {
 		log.Print( "wpg.Accounts.AppendConn:con is nil." )
 	}
@@ -127,11 +117,6 @@ func ( accs *Accounts ) UpdateConn( name, sid string ) error {
 
 func ( accs *Accounts ) GetConn( sid string ) ( *Conn, bool ) {
 	v, ok := accs.conns[ sid ]
-	return v, ok
-}
-
-func ( accs *Accounts ) GetConnFromID( ID int64 ) ( *Conn, bool ) {
-	v, ok := accs.icons[ ID ]
 	return v, ok
 }
 

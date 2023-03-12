@@ -27,8 +27,8 @@ func ( b *BitRow ) Set( shift, size int, value int64 ) error {
 	} else if size >= BIT_NUM_IN_VALUE {
 		return fmt.Errorf( "gim.BitRow.Set size(%d) is too large.", size )
 	}
-	hindex := ( shift + size + BIT_NUM_IN_VALUE - 1 ) / BIT_NUM_IN_VALUE
-	lindex := ( shift + BIT_NUM_IN_VALUE - 1 ) / BIT_NUM_IN_VALUE
+	hindex := ( shift + size ) / BIT_NUM_IN_VALUE
+	lindex := shift / BIT_NUM_IN_VALUE
 	if hindex > lindex {	// ビットごとの更新が配列の区切りにまたがってしまう場合
 		lshift := shift % BIT_NUM_IN_VALUE
 		lsize := BIT_NUM_IN_VALUE - lshift
@@ -54,7 +54,7 @@ func ( b *BitRow ) set( index, shift, size int, value int64 ) error {
 		return fmt.Errorf( "gim.BitRow.set size(%d) is too small.", size )
 	} else if shift + size >= BIT_NUM_IN_VALUE {
 		return fmt.Errorf( "gim.BitRow.set shift(%d) size(%d) is too large.", shift, size )
-	} else if index >= len( b.Body ) {
+	} else if index > len( b.Body ) {
 		add := make( []int64, index - len( b.Body ) + 1 )
 		b.Body = append( b.Body, add... )
 	} else if mask := int64( math.Pow( 2, float64( size ) ) ) - 1; value > mask {
@@ -72,11 +72,9 @@ func ( b *BitRow ) Get( shift, size int ) ( int64, error ) {
 		return 0, fmt.Errorf( "gim.BitRow.Get size(%d) is too small.", size )
 	} else if size >= BIT_NUM_IN_VALUE {
 		return 0, fmt.Errorf( "gim.BitRow.Get size(%d) is too large.", size )
-	} else if shift + size >= BIT_NUM_IN_VALUE {
-		return 0, fmt.Errorf( "gim.BitRow.Get shift,size(%d) is too large.", shift + size )
 	}
-	hindex := ( shift + size + BIT_NUM_IN_VALUE - 1 ) / BIT_NUM_IN_VALUE
-	lindex := ( shift + BIT_NUM_IN_VALUE - 1 ) / BIT_NUM_IN_VALUE
+	hindex := ( shift + size ) / BIT_NUM_IN_VALUE
+	lindex := shift / BIT_NUM_IN_VALUE
 	if hindex > lindex {	// ビットごとの更新が配列の区切りにまたがってしまう場合
 		lshift := shift % BIT_NUM_IN_VALUE
 		lsize := BIT_NUM_IN_VALUE - lshift

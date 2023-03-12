@@ -119,12 +119,12 @@ func ( ds *DStore ) QueryUnique( kind, property, value string, src interface{} )
 	if src == nil {
 		q = q.KeysOnly()
 	}
-	if keys, err := ds.Client.GetAll( ds.Ctx, q, src );err != nil {
+	if keys, err := ds.Client.GetAll( ds.Ctx, q, src ); err != nil {
 		return -1, fmt.Errorf( "dstore.QueryUnique err:%v.", err )
 	} else {
 		num := len( keys )
 		if num == 1 {
-			return keys[0].ID, nil
+			return keys[ 0 ].ID, nil
 		} else if num == 0 {
 			return -1, nil
 		} else {

@@ -7,7 +7,7 @@ import (
 	"io"
 	"math"
 
-	"gnocchi/bkt"
+	"gnocchi/gim"
 )
 
 // 文字列マネージャー設定ファイル列名
@@ -27,92 +27,72 @@ const (
   STRMODE_END_SEPARATE
 )
 
-type ctgry struct {
+type category struct {
   smp map[int]string
 }
 
+type ctgry struct {
+	key			string
+	filename	string
+}
+
+type item struct {
+	id		int
+	str		string
+}
+
 type StringStocker struct {
-  ctry  map[string]*ctgry
+  ctry  map[ string ]*category
 }
 
-func Create( bckt *bkt.Bucket, path string ) ( *StringStocker, error ) {
-	log.Println( "Start stk.ReadData." )
-	buf, err := bckt.ReadLine( path )
-	if err != nil {
-		return nil, fmt.Errorf( "stk.Create:bkt.Bucket.ReadLine failure bckt:%v.\n\t%v.", bckt, err )
+func newCategory( text string ) ( interface{}, error ) {
+	var c ctgry
+	if num, err := fmt.Sscanf( text, "%s %s", &c.key, &c.filename ); err != nil {
+		return nil, fmt.Errorf( "stk.Create:fmt.Sscanf failure num num:%d, text:%q.\n\t%v", num, text, err )
+	} else if num < NUM_STRMGR_PARAM {
+		return nil, fmt.Errorf( "stk.Create:number of item is too short. item num:%d, buf:%q.\n\t%v", num, text, err )
 	}
-	lineNum := len( buf )
-	if lineNum <= 0 {
-		return nil, fmt.Errorf( "stk.Create: too short lineNum:%d, bckt:%v.", lineNum, bckt )
-	}
-
-	mgr := &StringStocker{ ctry:  make( map[string]*ctgry, lineNum ) }
-
-	for i := 0 ; i < lineNum; i++ {
-		var name, file string
-		if num, err := fmt.Sscanf( buf[i], "%s %s", &name, &file ); num < NUM_STRMGR_PARAM || err != nil {
-			return mgr, fmt.Errorf( "stk.Create: too short item num:%d, lineNum:%d, i:%d, buf:%q.\n\t%v", num, lineNum, i, buf[i], err )
-		}
-		if err := mgr.createStrMap( bckt, name, file ); err != nil {
-			return mgr, fmt.Errorf( "stk.Create:stk.createStrMap failure lineNum:%d, i:%d, buf:%q, file:%q.\n\t%v", lineNum, i, buf[i], file, err )
-		}
-	}
-	log.Println( "Complete stk.ReadData." )
-	return mgr, nil
+	return &c, nil
 }
 
-func ( strStk *StringStocker ) createStrMap( bckt *bkt.Bucket, name, path string ) error {
-	buf, err := bckt.ReadLine( path )
-	if err != nil {
-		return fmt.Errorf( "stk.StringStocker.createStrMap:bkt.ReadLine failure path:%q.\n\t%v", path, err )
-	}
-	lineNum := len( buf )
-	if lineNum <= 0 {
-		return fmt.Errorf( "stk.StringStocker.createStrMap:too short lineNum:%d, path:%q.\n\t%v", lineNum, path, err )
-	}
-
-	p := new( ctgry )
-	p.smp = make( map[ int ]string, lineNum )
-	for i := 0 ; i < lineNum; i++ {
-		src := []rune( buf[ i ] )
-		sz := len( src )
-		dst := make([]rune, sz)
-		mode := STRMODE_FIRST_SEPARATE
-		id, index := 0, 0
-		for j := 0; j < sz; j++ {
-			r := src[j]
-			switch mode {
+func newItem( text string ) ( interface{}, error ) {
+	src := []rune( text )
+	sz := len( text )
+	dst := make( []rune, sz )
+	mode := STRMODE_FIRST_SEPARATE
+	index, n := 0, 0
+	var it item
+	var err error
+	for i, r := range src {
+		switch mode {
 			case STRMODE_FIRST_SEPARATE:
 				if r >= 0x30 && r <= 0x39 {
 					mode = STRMODE_ID
-					n, err := strconv.Atoi( string( r ) )
-					if err != nil {
-						return fmt.Errorf( "stk.StringStocker.createStrMap:Atoi failure r:%x, j:%d, sz:%d, err:%v, mode:%d, lineNum:%d, i:%d, buf:%q, path:%q", r, j, sz, err, mode, lineNum, i, buf[i], path )
+					if n, err = strconv.Atoi( string( r ) ); err != nil {
+						return nil, fmt.Errorf( "stk.newItem:Atoi failure r:%x, i:%d, sz:%d, err:%v, mode:%d, i:%d, src:%q", r, i, sz, err, mode, i, src )
 					}
-					id = int( n )
+					it.id = int( n )
 				} else if r != 0x20 {
-					return fmt.Errorf( "stk.StringStocker.createStrMap:Invalid rune r:%x, j:%d, sz:%d, mode:%d, lineNum:%d, i:%d, buf:%q, path:%q", r, j, sz, mode, lineNum, i, buf[i], path )
+					return nil, fmt.Errorf( "stk.newItem:Invalid rune r:%x, i:%d, sz:%d, mode:%d, i:%d, src:%q", r, i, sz, mode, i, src )
 				}
 			case STRMODE_ID:
 				if r >= 0x30 && r <= 0x39 {
-					n, err := strconv.Atoi( string( r ) )
-					if err != nil {
-						return fmt.Errorf( "stk.StringStocker.createStrMap:Atoi failure r:%x, j:%d, sz:%d, err:%v, mode:%d, lineNum:%d, i:%d, buf:%q, path:%q", r, j, sz, err, mode, lineNum, i, buf[i], path )
+					if n, err = strconv.Atoi( string( r ) ); err != nil {
+						return nil, fmt.Errorf( "stk.newItem:Atoi failure r:%x, i:%d, sz:%d, err:%v, mode:%d, i:%d, src:%q", r, i, sz, err, mode, i, src )
+					} else if it.id > math.MaxInt64 / 10 {
+						return nil, fmt.Errorf( "stk.newItem:id is too large id:%d, r:%x, i:%d, sz:%d, mode:%d, i:%d, src:%q", it.id, r, i, sz, mode, i, src )
 					}
-					if id > math.MaxInt64 / 10 {
-						return fmt.Errorf( "stk.StringStocker.createStrMap:id is too large id:%d, r:%x, j:%d, sz:%d, mode:%d, lineNum:%d, i:%d, buf:%q, rpath:%q", id, r, j, sz, mode, lineNum, i, buf[i], path )
-					}
-					id = id * 10 + int( n )
+					it.id = it.id * 10 + int( n )
 				} else if r == 0x20 {
 					mode = STRMODE_SECOUND_SEPARATE
 				} else {
-					return fmt.Errorf( "stk.StringStocker.createStrMap:invalid rune r:%x, id:%d, j:%d, sz:%d, mode:%d, lineNum:%d, i:%d, buf:%q, path:%q", r, id, j, sz, mode, lineNum, i, buf[i], path )
+					return nil, fmt.Errorf( "stk.newItem:Invalid rune r:%x, it.id:%d, i:%d, sz:%d, mode:%d, i:%d, src:%q", r, it.id, i, sz, mode, i, src )
 				}
 			case STRMODE_SECOUND_SEPARATE:
 				if r == '"' {
 					mode = STRMODE_BODY
 				} else if r != 0x20 {
-					return fmt.Errorf( "stk.StringStocker.createStrMap:invalid rune r:%x, j:%d, sz:%d, mode:%d, lineNum:%d, i:%d, buf:%q, path:%q", r, j, sz, mode, lineNum, i, buf[i], path )
+					return nil, fmt.Errorf( "stk.newItem:Invalid rune r:%x, i:%d, sz:%d, mode:%d, src:%q", r, i, sz, mode, src )
 				}
 			case STRMODE_BODY:
 				if r == '"' {
@@ -129,29 +109,72 @@ func ( strStk *StringStocker ) createStrMap( bckt *bkt.Bucket, name, path string
 					index++
 					mode = STRMODE_BODY
 				} else {
-					return fmt.Errorf( "stk.StringStocker.createStrMap:invalid escape r:%x, j:%d, sz:%d, mode:%d, lineNum:%d, i:%d, buf:%q, path:%q", r, j, sz, mode, lineNum, i, buf[i], path )
+					return nil, fmt.Errorf( "stk.newItem:Invalid escape r:%x, i:%d, sz:%d, mode:%d, i:%d, src:%q", r, i, sz, mode, i, src )
 				}
 			case STRMODE_END_SEPARATE:
 				if r != ' ' {
-					return fmt.Errorf( "stk.StringStocker.createStrMap:invalid end separate r:%x, j:%d, sz:%d, mode:%d, lineNum:%d, i:%d, buf:%q, path:%q", r, j, sz, mode, lineNum, i, buf[i], path )
+					return nil, fmt.Errorf( "stk.newItem:Invalid end separate r:%x, i:%d, sz:%d, mode:%d, i:%d, src:%q", r, i, sz, mode, i, src )
 				}
-			}
 		}
-		var s string
-		if mode == STRMODE_END_SEPARATE {
-			s = string( dst[ :index ] )
-		}
-		p.smp[id] = s
 	}
-	strStk.ctry[ name ] = p
+	if mode == STRMODE_END_SEPARATE {
+		it.str = string( dst[ :index ] )
+//	fmt.Printf( "it:%v\n", it )
+	} else {
+		return nil, fmt.Errorf( "stk.newItem:Invalid end of line sz:%d, mode:%d, src:%q.", sz, mode, src )
+	}
+
+	return &it, nil
+}
+
+func Create( root, path, file string ) ( *StringStocker, error ) {
+	log.Printf( "Start stk.Create root:%q paht:%q file:%q.", root, path, file )
+	defer log.Printf( "End stk.Create root:%q path:%q file:%q.", root, path, file )
+
+	line, num, err := gim.CreateFileLines( root + path + file, newCategory )
+	if err != nil {
+		return nil, fmt.Errorf( "stk.Create:gim.CreateFileLines failure root:%q path:%q file:%q.\n\t%v", root, path, file, err )
+	}
+
+	stkr := &StringStocker{ ctry:make( map[ string ]*category, num ) }
+
+	var c *ctgry
+	for line != nil {
+		c = (line.Data).( *ctgry )
+		if err = stkr.appendCategory( root, path, c.key, c.filename ); err != nil {
+			return nil, fmt.Errorf( "stk.Create:stk.appendCategory failure num:%d, c:%v, file:%q.\n\t%v", num, c, file, err )
+		}
+		line = line.Next
+	}
+	return stkr, nil
+}
+
+func ( strStk *StringStocker ) appendCategory( root, path, name, file string ) error {
+	line, num, err := gim.CreateFileLines( root + path + file, newItem )
+	if err != nil {
+		return fmt.Errorf( "stk.StringStocker.appendCategory:gim.CreateFileLines failure root:%q path:%q file:%q.\n\t%v", root, path, file, err )
+	}
+
+	var c category
+	c.smp = make( map[ int ]string, num )
+
+	var it *item
+	for line != nil {
+		it = (line.Data).( *item )
+		c.smp[ it.id ] = it.str
+		line = line.Next
+	}
+
+	strStk.ctry[ name ] = &c
+
 	return nil
 }
 
 func ( strStk *StringStocker ) String( category string, index int ) ( string, error ) {
 	if c, ok := strStk.ctry[ category ]; !ok {
-		return "", fmt.Errorf( "stk.GetString:invalid category:%q, index:%d.", category, index  )
+		return "", fmt.Errorf( "stk.GetString:Invalid category:%q, index:%d.", category, index  )
 	} else if s, ok := c.smp[ index ]; !ok {
-		return "", fmt.Errorf( "stk.GetString:invalid index:%d, category:%q.", index, category )
+		return "", fmt.Errorf( "stk.GetString:Invalid index:%d, category:%q.", index, category )
 	} else {
 		return s, nil
 	}
@@ -165,7 +188,7 @@ func ( strStk *StringStocker ) GetString( category string, index int ) string {
 func ( strStk *StringStocker ) GetCategorySize( category string ) int {
 	c, ok := strStk.ctry[ category ]
 	if c == nil || !ok {  // 格納されている以上は、nilではないけど、念のため
-		log.Printf( "stk.GetSize:invalid category:%q", category )
+		log.Printf( "stk.GetSize:Invalid category:%q", category )
 		return -1
 	}
 	return len( c.smp )

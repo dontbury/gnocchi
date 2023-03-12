@@ -6,9 +6,11 @@ import (
 	"net/http"
 	"text/template"
 	"net/url"
+//	"os"
+//	"bufio"
 
 //	"github.com/dontbury/gnocchi/bkt"
-	"gnocchi/bkt"
+	"gnocchi/gim"
 )
 
 const (
@@ -57,31 +59,53 @@ type TmplFuncArg struct {
 	Elm *TmplFuncArgElm
 }
 
+type tmpl struct {
+	key		string
+	page	string
+	head	string
+	header	string
+	nav		string
+	main	string
+	footer	string
+}
+
+func newTemplate( text string ) ( interface{}, error ) {
+	var t tmpl
+	num, err := fmt.Sscanf( text, "%s %s %s %s %s %s %s", &t.key, &t.page, &t.head, &t.header, &t.nav, &t.main, &t.footer )
+	if err != nil {
+		return nil, fmt.Errorf( "stk.Create:fmt.Sscanf failure num num:%d, text:%q.\n\t%v", num, text, err )
+	} else if num < NUM_TMPL_PARAM {
+		return nil, fmt.Errorf( "stk.Create:number of item is too short. item num:%d, text:%q.\n\t%v", num, text, err )
+	}
+	t.key = strings.Trim( t.key, "\"" )
+	return &t, nil
+}
+
 func ( mgr *TmplMap ) GetTemplate( key string ) ( *template.Template, bool ) {
 	v, ok := mgr.tmpls[ key ]
 	return v, ok
 }
 
-func Create( bckt *bkt.Bucket, path, static string, funcMap template.FuncMap ) ( *TmplMap, error ) {
-	buf, err := bckt.ReadLine( path )
+func Create( root, file, path, static string, funcMap template.FuncMap ) ( *TmplMap, error ) {
+	line, num, err := gim.CreateFileLines( root + file, newTemplate )
 	if err != nil {
-		return nil, fmt.Errorf( "wpg.TmplMap.Create: cannot read base template path:%q.\n\t%v", path, err )
-	}
-	lineNum := len( buf )
-	if lineNum <= 0 {
-		return nil, fmt.Errorf( "wpg.TmplMap.Create: too short lineNum:%d, path:%q.", lineNum, path )
+		return nil, fmt.Errorf( "wpg.Create:gim.CreateFileLines failure file:%q.\n\t%v.", file, err )
 	}
 
-	mgr := &TmplMap{ tmpls:  make( map[ string ]*template.Template, lineNum ) }
-	for i := 0 ; i < lineNum; i++ {
-		var key, page, head, header, nav, main, footer string
-		num, err := fmt.Sscanf( buf[ i ], "%s %s %s %s %s %s %s", &key, &page, &head, &header, &nav, &main, &footer )
-		key = strings.Trim( key, "\"" )
-		if num < NUM_TMPL_PARAM || err != nil {
-			return mgr, fmt.Errorf( "wpg.TmplMap.Create: too short item num:%d, lineNum:%d, i:%d, buf:%q, key:%q, path:%q, err:%v", num, lineNum, i, buf[ i ], key, path, err )
-		}
-		mgr.tmpls[ key ] = template.Must( template.New( page ).Funcs( funcMap ).ParseFiles( page, head, header, nav, main, footer, static ) )
+	mgr := &TmplMap{ tmpls:make( map[ string ]*template.Template, num ) }
+
+	tmplPath, tmplStatic := root + path + "/", root + path + static
+	var t *tmpl
+//	fmt.Printf( "tmplStatic:%q\n", tmplStatic )
+	for line != nil {
+		t = (line.Data).( *tmpl )
+//	fmt.Printf( "wpg.Create:key:%q line:%v\n", t.key, t )
+		mgr.tmpls[ t.key ] = template.Must( template.New( tmplPath + t.page ).Funcs( funcMap ).ParseFiles( 
+			tmplPath + t.page, tmplPath + t.head, tmplPath + t.header, 
+			tmplPath + t.nav, tmplPath + t.main, tmplPath + t.footer, tmplStatic ) )
+		line = line.Next
 	}
+
 	return mgr, nil
 }
 
