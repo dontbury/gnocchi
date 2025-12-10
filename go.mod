@@ -1,6 +1,6 @@
 module github.com/dontbury/gnocchi
 
-go 1.18
+go 1.21.0
 
 require (
 	cloud.google.com/go/datastore v1.8.0

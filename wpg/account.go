@@ -44,7 +44,7 @@ func ( accs *Accounts ) Connection( w http.ResponseWriter, r *http.Request ) *Co
 		sid = u.String()
 		c := accs.conns[ sid ]
 		if c != nil {
-			log.Printf( "wgp.Accounts.Connection uuid.NewV4() sid:%q, already existed sid:%q connection:%v.", sid, c )
+			log.Printf( "wgp.Accounts.Connection uuid.NewV4() sid:%q, already existed connection:%v", sid, c )
 			return nil
 		}
 		ck := &http.Cookie{ Name:COOKIE_NAME, Value:sid, Path:"/" }

@@ -34,7 +34,7 @@ func ( b *BytesList ) SetBytes( index int, bytes *[]byte ) error {
 	if index < len( b.bytes ) {
 		b.bytes[ index ] = Bytes( bytes )
 	} else {
-		return fmt.Errorf( "gim.BytesList.SetBytes:index too large index:%d len():%d.", index, len( b.bytes ) )
+		return fmt.Errorf( "gim.BytesList.SetBytes:index too large index:%d len():%d", index, len( b.bytes ) )
 	}
 	return nil
 }
@@ -52,7 +52,7 @@ func ( b *BytesList ) Bytes( maxDepth int ) ( *[]byte, error ) {
 
 		t = t.next
 		if depth > maxDepth {
-			return nil, fmt.Errorf( "gim.BytesList.Bytes:Loop depth over %d.", maxDepth )
+			return nil, fmt.Errorf( "gim.BytesList.Bytes:Loop depth over %d", maxDepth )
 		}
 	}
 
@@ -72,7 +72,7 @@ func ( b *BytesList ) Bytes( maxDepth int ) ( *[]byte, error ) {
 		t = t.next
 		depth++
 		if depth > maxDepth {
-			return nil, fmt.Errorf( "gim.BytesList.Bytes:Loop depth over %d.", maxDepth )
+			return nil, fmt.Errorf( "gim.BytesList.Bytes:Loop depth over %d", maxDepth )
 		}
 	}
 
@@ -90,7 +90,7 @@ func ( b *BytesList ) AppendTail( bl *BytesList, maxDepth int ) error {
 		t = t.next
 		depth++
 		if depth > maxDepth {
-			return fmt.Errorf( "gim.BytesList.AppendTail:Loop depth over %d.", maxDepth )
+			return fmt.Errorf( "gim.BytesList.AppendTail:Loop depth over %d", maxDepth )
 		}
 	}
 	return nil

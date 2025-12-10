@@ -1,10 +1,11 @@
 package wpg
 
 import (
-	"fmt"
-	"strings"
-	"strconv"
+	// "fmt"
+	"log"
 	"net/url"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -13,16 +14,16 @@ const (
 	URL_PATH_DEPTH2
 )
 
-const	(
-	HTML_TAG_BR = "<br>"
-	HTML_TAG_HR = "<hr>"
-	HTML_DISABLED = "disabled"
-	HTML_CHECKED = "checked=\"checked\""
+const (
+	HTML_TAG_BR        = "<br>"
+	HTML_TAG_HR        = "<hr>"
+	HTML_DISABLED      = "disabled"
+	HTML_CHECKED       = "checked=\"checked\""
 	HTML_CHECKED_VALUE = "1"
-	HTML_SPACE = "&nbsp;"
+	HTML_SPACE         = "&nbsp;"
 )
 
-const	(
+const (
 	TFAM_INDEX01 = iota + 1
 	TFAM_INDEX02
 	TFAM_INDEX03
@@ -43,10 +44,20 @@ const	(
 	TFAM_INDEX18
 	TFAM_INDEX19
 	TFAM_INDEX20
+	TFAM_INDEX21
+	TFAM_INDEX22
+	TFAM_INDEX23
+	TFAM_INDEX24
+	TFAM_INDEX25
+	TFAM_INDEX26
+	TFAM_INDEX27
+	TFAM_INDEX28
+	TFAM_INDEX29
+	TFAM_INDEX30
 )
 
 // アカウント種別
-const	(
+const (
 	ACC_TYPE_ADMIN = iota + 1
 	ACC_TYPE_02
 	ACC_TYPE_03
@@ -68,41 +79,44 @@ const	(
 // HTML
 // HTML ALIGN
 const HTML_ALIGN = "align"
-const	(
-	HTML_ALIGN_NONE = 0
-	HTML_ALIGN_TOP = 1
+const (
+	HTML_ALIGN_NONE   = 0
+	HTML_ALIGN_TOP    = 1
 	HTML_ALIGN_BOTTOM = 2
-	HTML_ALIGN_LEFT = 3
-	HTML_ALIGN_RIGHT = 4
+	HTML_ALIGN_LEFT   = 3
+	HTML_ALIGN_RIGHT  = 4
 )
+
 // HTML FORM METHOD
 const (
 	HTML_FORM_METHOD_NONE = 0
-	HTML_FORM_METHOD_GET = 1
+	HTML_FORM_METHOD_GET  = 1
 	HTML_FORM_METHOD_POST = 2
 )
+
 // HTML INPUT TYPE
 const (
-	HTML_INPUT_TYPE_NONE = 0
-	HTML_INPUT_TYPE_TEXT = 1
+	HTML_INPUT_TYPE_NONE     = 0
+	HTML_INPUT_TYPE_TEXT     = 1
 	HTML_INPUT_TYPE_PASSWORD = 2
-	HTML_INPUT_TYPE_RADIO = 3
+	HTML_INPUT_TYPE_RADIO    = 3
 	HTML_INPUT_TYPE_CHECKBOX = 4
-	HTML_INPUT_TYPE_FILE = 5
-	HTML_INPUT_TYPE_HIDDEN = 6
-	HTML_INPUT_TYPE_SUBMIT = 7
-	HTML_INPUT_TYPE_IMAGE = 8
-	HTML_INPUT_TYPE_RESET = 9
-	HTML_INPUT_TYPE_BUTTON = 10
+	HTML_INPUT_TYPE_FILE     = 5
+	HTML_INPUT_TYPE_HIDDEN   = 6
+	HTML_INPUT_TYPE_SUBMIT   = 7
+	HTML_INPUT_TYPE_IMAGE    = 8
+	HTML_INPUT_TYPE_RESET    = 9
+	HTML_INPUT_TYPE_BUTTON   = 10
 )
 
 type HtmlTag interface {
-	Str() ( string, error )
+	Str() (string, error)
+	ToStr() string
 }
 
 type SlctOpt struct {
-	Val string
-	Cap string
+	Val  string
+	Cap  string
 	Slct bool
 	Dsbl bool
 }
@@ -123,31 +137,33 @@ type HtmlHr struct {
 type HtmlForm struct {
 	Action string
 	Method int
-	Id string
-	Body []HtmlTag
+	Id     string
+	Body   []HtmlTag
 }
 
 type HtmlLabel struct {
-	For string
+	For  string
 	Body []HtmlTag
 }
 
 type HtmlAbbr struct {
 	Title string
-	Body string
+	Body  string
 }
 
 type HtmlInput struct {
-	Type int
-	Name string
+	Type        int
+	Name        string
 	Placeholder string
-	Size int
-	Minlength int
-	Maxlength int
-	Cls string
-	Id string
-	Value string
-	Required bool
+	Size        int
+	Minlength   int
+	Maxlength   int
+	Cls         string
+	Id          string
+	Value       string
+	Required    bool
+	Disabled    bool
+	Checked     bool
 }
 
 type HtmlTh struct {
@@ -155,12 +171,12 @@ type HtmlTh struct {
 }
 
 type HtmlTd struct {
-	Dt string
+	Dt  string
 	Cls string
 }
 
 type HtmlTr struct {
-	Hd *HtmlTh
+	Hd  *HtmlTh
 	Row []HtmlTd
 }
 
@@ -170,22 +186,54 @@ type HtmlCpt struct {
 }
 
 type HtmlTbl struct {
-	Cls string
-	Cpt *HtmlCpt
+	Cls  string
+	Cpt  *HtmlCpt
 	Hdrs []HtmlTh
-	Bdy []HtmlTr
+	Bdy  []HtmlTr
 }
 
 type HtmlA struct {
-	Path string
-	Args url.Values
-	Cpt string
-	Id string
-	Cls string
+	Path    string
+	Args    url.Values
+	Cpt     string
+	Id      string
+	Cls     string
 	Disable bool
 }
 
-func EscapeHTML( src string ) string {
+type HtmlDiv struct {
+	Tags  []HtmlTag
+	Text  string
+	Class []string
+	Id    []string
+}
+
+type HtmlOption struct {
+	Value    string
+	Selected bool
+	Label    string
+	Disabled bool
+	Caption  string
+}
+
+type HtmlSelect struct {
+	Name     string
+	Size     int
+	Multiple bool
+	Disabled bool
+	Body     []HtmlTag
+	Class    []string
+	Id       []string
+}
+
+func SetParamValue(num int) string {
+	if num > 0 {
+		return strconv.Itoa(num)
+	}
+	return ""
+}
+
+func EscapeHTML(src string) string {
 	str := strings.Replace(src, "&", "&amp;", -1)
 	str = strings.Replace(str, "<", "&lt;", -1)
 	str = strings.Replace(str, ">", "&gt;", -1)
@@ -194,19 +242,19 @@ func EscapeHTML( src string ) string {
 }
 
 // HTMLフォーマットのパラグラフを出力
-func PrintHTMLParagraph( p string ) string {
+func PrintHTMLParagraph(p string) string {
 	return "<p>" + p + "</p>"
 }
 
 // HTMLフォーマットのヘッダー3を出力
-func PrintHTMLH3( p string ) string {
+func PrintHTMLH3(p string) string {
 	return "<h3>" + p + "</h3>"
 }
 
 // HTMLフォーマットのarticleを出力
-func PrintHTMLArticle( class, p string ) string {
+func PrintHTMLArticle(class, p string) string {
 	str := "<article"
-	if len( class ) > 0 {
+	if len(class) > 0 {
 		str += " class=\"" + class + "\""
 	}
 	str += ">" + p + "</article>"
@@ -214,12 +262,12 @@ func PrintHTMLArticle( class, p string ) string {
 }
 
 // HTMLフォーマット:textタイプのinputを出力
-func PrintHTMLInputText( name, value, size, maxsize string ) string {
+func PrintHTMLInputText(name, value, size, maxsize string) string {
 	str := "<input type=\"text\" name=\"" + name + "\" value=\"" + value + "\""
-	if len( size ) > 0 {
+	if len(size) > 0 {
 		str += " size=\"" + size + "\""
 	}
-	if len( maxsize ) > 0 {
+	if len(maxsize) > 0 {
 		str += " maxsize=\"" + maxsize + "\""
 	}
 	str += ">"
@@ -227,21 +275,21 @@ func PrintHTMLInputText( name, value, size, maxsize string ) string {
 }
 
 // HTMLフォーマット:numberタイプのinputを出力
-func PrintHTMLInputNumber( name, value, size, maxsize, min, max string ) string {
+func PrintHTMLInputNumber(name, value, size, maxsize, min, max string) string {
 	str := "<input type=\"number\" name=\"" + name + "\""
-	if len( value ) > 0 {
+	if len(value) > 0 {
 		str += " value=\"" + value + "\""
 	}
-	if len( size ) > 0 {
+	if len(size) > 0 {
 		str += " size=\"" + size + "\""
 	}
-	if len( maxsize ) > 0 {
+	if len(maxsize) > 0 {
 		str += " maxsize=\"" + maxsize + "\""
 	}
-	if len( min ) > 0 {
+	if len(min) > 0 {
 		str += " min=\"" + min + "\""
 	}
-	if len( max ) > 0 {
+	if len(max) > 0 {
 		str += " max=\"" + max + "\""
 	}
 	str += ">"
@@ -249,31 +297,39 @@ func PrintHTMLInputNumber( name, value, size, maxsize, min, max string ) string 
 }
 
 // HTMLフォーマット:submitタイプのinputを出力
-func PrintHTMLInputSubmit( value, cls string ) string {
+func PrintHTMLInputSubmit(value, cls string) string {
 	str := "<input type=\"submit\" value=\"" + value + "\""
-	if len( cls ) > 0 { str += " class=\"" + cls + "\"" }
+	if len(cls) > 0 {
+		str += " class=\"" + cls + "\""
+	}
 	return str + ">"
 }
 
 // HTMLフォーマット:hiddenタイプのinputを出力
-func PrintHTMLInputHidden( name, value, cls string ) string {
+func PrintHTMLInputHidden(name, value, cls string) string {
 	str := "<input type=\"hidden\" name=\"" + name + "\" value=\"" + value + "\""
-	if len( cls ) > 0 { str += " class=\"" + cls + "\"" }
+	if len(cls) > 0 {
+		str += " class=\"" + cls + "\""
+	}
 	return str + ">"
 }
 
 // HTMLフォーマット:postメソッドのformを出力
-func PrintHTMLForm( action, content string ) string {
+func PrintHTMLForm(action, content string) string {
 	return "<form method=\"GET\" action=\"" + action + "\">" + content + "<form>"
 }
 
 // HTMLフォーマット:selectを出力
-func PrintHTMLSelect( name string, arOpt *[]SlctOpt ) string {
+func PrintHTMLSelect(name string, arOpt *[]SlctOpt) string {
 	str := "<select name=\"" + name + "\">"
 	for _, v := range *arOpt {
 		str += "<option value=\"" + v.Val + "\""
-		if v.Slct { str+= " selected" }
-		if v.Dsbl { str+= " disabled" }
+		if v.Slct {
+			str += " selected"
+		}
+		if v.Dsbl {
+			str += " disabled"
+		}
 		str += ">" + v.Cap + "</option>"
 	}
 	str += "</select>"
@@ -281,7 +337,7 @@ func PrintHTMLSelect( name string, arOpt *[]SlctOpt ) string {
 }
 
 // 引数をMapで渡してリンクを作る
-func LinkArgsMapHTML( path, caption string, mapArg url.Values ) string {
+func LinkArgsMapHTML(path, caption string, mapArg url.Values) string {
 	first := true
 	arg := ""
 	for key, v := range mapArg {
@@ -295,171 +351,257 @@ func LinkArgsMapHTML( path, caption string, mapArg url.Values ) string {
 			arg += key + "=" + s
 		}
 	}
-	return LinkHTML( path + arg, "", "", caption, true )
+	return LinkHTML(path+arg, "", "", caption, true)
 }
 
-func ( s *PlainText )Str() ( string, error ) {
-	return s.Text, nil
+func (s *PlainText) Str() (string, error) {
+	return s.ToStr(), nil
 }
 
-func ( s *HtmlNbsp )Str() ( string, error ) {
-	return "&nbsp", nil
+func (s *PlainText) ToStr() string {
+	return s.Text
 }
 
-func ( s *HtmlBr )Str() ( string, error ) {
-	return "<br>", nil
+func (s *HtmlNbsp) Str() (string, error) {
+	return s.ToStr(), nil
 }
 
-func ( s *HtmlHr )Str() ( string, error ) {
-	return "<hr>", nil
+func (s *HtmlNbsp) ToStr() string {
+	return "&nbsp"
 }
 
-func ( s *HtmlForm )Str() ( string, error ) {
+func (s *HtmlBr) Str() (string, error) {
+	return s.ToStr(), nil
+}
+
+func (s *HtmlBr) ToStr() string {
+	return "<br>"
+}
+
+func (s *HtmlHr) Str() (string, error) {
+	return s.ToStr(), nil
+}
+
+func (s *HtmlHr) ToStr() string {
+	return "<hr>"
+}
+
+func (s *HtmlForm) Str() (string, error) {
+	return s.ToStr(), nil
+}
+
+func (s *HtmlForm) ToStr() string {
 	str := "<form method=\""
-	switch( s.Method ) {
-		case HTML_FORM_METHOD_GET:
-			str += "GET\""
-		case HTML_FORM_METHOD_POST:
-			str += "POST\""
-		default:
-			return "", fmt.Errorf( "wpg.HtmlForm.Str:Invalid Method:%d.", s.Method )
+	switch s.Method {
+	case HTML_FORM_METHOD_GET:
+		str += "GET\""
+	case HTML_FORM_METHOD_POST:
+		str += "POST\""
+	default:
+		log.Printf("wpg.HtmlForm.Str:Invalid Method:%d HtmlForm:%+v", s.Method, s)
 	}
-	str += " action=\""+ s.Action + "\""
-	if len( s.Id ) > 0 { str += " id=\"" + s.Id + "\"" }
+	str += " action=\"" + s.Action + "\""
+	if len(s.Id) > 0 {
+		str += " id=\"" + s.Id + "\""
+	}
 	str += ">\n"
 	var v HtmlTag
-	var buf string
-	var i int
-	var err error
-	for i, v = range s.Body {
-		if v == nil { return "", fmt.Errorf( "wpg.HtmlForm.Str:v(%d) is nil.", i ) }
-		if buf, err = v.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlForm.Str:wpg.HtmlTag.Str failure:%v.\t\n", err ) }
-		str += buf + "\n"
+	for _, v = range s.Body {
+		str += v.ToStr()
 	}
-	return str + "</form>", nil
+	return str + "</form>\n"
 }
 
-func ( s *HtmlLabel )Str() ( string, error ) {
-	str, buf := "", ""
+func (s *HtmlLabel) Str() (string, error) {
+	return s.ToStr(), nil
+}
+
+func (s *HtmlLabel) ToStr() string {
+	str := ""
 	var v HtmlTag
-	var i int
-	var err error
-	for i, v = range s.Body {
-		if v == nil { return "", fmt.Errorf( "wpg.HtmlLabel.Str:v(%d) is nil.", i ) }
-		if buf, err = v.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlLabel.Str:wpg.HtmlTag.Str failure:%v.\t\n", err ) }
-		str += buf
+	for _, v = range s.Body {
+		str += v.ToStr()
 	}
-	return  "<label for=\"" + s.For + "\">" + str + "</label>", nil
+	return "<label for=\"" + s.For + "\">" + str + "</label>"
 }
 
-func ( s *HtmlAbbr )Str() ( string, error ) {
-	return  "<abbr title=\"" + s.Title + "\">" + s.Body + "</abbr>", nil
+func (s *HtmlAbbr) Str() (string, error) {
+	return s.ToStr(), nil
 }
 
-func ( s *HtmlInput )Str() ( string, error ) {
+func (s *HtmlAbbr) ToStr() string {
+	return "<abbr title=\"" + s.Title + "\">" + s.Body + "</abbr>"
+}
+
+func (s *HtmlInput) Str() (string, error) {
+	return s.ToStr(), nil
+}
+
+func (s *HtmlInput) ToStr() string {
 	str := "type=\""
-	switch( s.Type ) {
-		case HTML_INPUT_TYPE_TEXT:
-			str += "text"
-		case HTML_INPUT_TYPE_PASSWORD:
-			str += "password"
-		case HTML_INPUT_TYPE_RADIO:
-			str += "radio"
-		case HTML_INPUT_TYPE_CHECKBOX:
-			str += "checkbox"
-		case HTML_INPUT_TYPE_FILE:
-			str += "file"
-		case HTML_INPUT_TYPE_HIDDEN:
-			str += "hidden"
-		case HTML_INPUT_TYPE_SUBMIT:
-			str += "submit"
-		case HTML_INPUT_TYPE_IMAGE:
-			str += "image"
-		case HTML_INPUT_TYPE_RESET:
-			str += "reset"
-		default:
-			return "", fmt.Errorf( "wpg.HtmlInput.Str:Invalid Type:%d.", s.Type )
+	switch s.Type {
+	case HTML_INPUT_TYPE_TEXT:
+		str += "text"
+	case HTML_INPUT_TYPE_PASSWORD:
+		str += "password"
+	case HTML_INPUT_TYPE_RADIO:
+		str += "radio"
+	case HTML_INPUT_TYPE_CHECKBOX:
+		str += "checkbox"
+	case HTML_INPUT_TYPE_FILE:
+		str += "file"
+	case HTML_INPUT_TYPE_HIDDEN:
+		str += "hidden"
+	case HTML_INPUT_TYPE_SUBMIT:
+		str += "submit"
+	case HTML_INPUT_TYPE_IMAGE:
+		str += "image"
+	case HTML_INPUT_TYPE_RESET:
+		str += "reset"
+	default:
+		log.Printf("wpg.HtmlInput.Str:Invalid Type:%d HtmlInput:%+v", s.Type, s)
 	}
 	str += "\" name=\"" + s.Name + "\""
-	if len( s.Placeholder ) > 0 { str += " placeholder=\"" + s.Placeholder + "\"" }
-	if s.Size > 0 { str += " size=\"" + strconv.Itoa( s.Size ) + "\"" }
-	if s.Minlength > 0 { str += " minlength=\"" + strconv.Itoa( s.Minlength ) + "\"" }
-	if s.Maxlength > 0 { str += " maxlength=\"" + strconv.Itoa( s.Maxlength ) + "\"" }
-	if len( s.Cls ) > 0 { str += " class=\"" + s.Cls + "\"" }
-	if len( s.Id ) > 0 { str += " id=\"" + s.Id + "\"" }
-	if len( s.Value ) > 0 { str += " value=\"" + s.Value + "\"" }
-	if s.Required { str += " required" }
-	return "<input " + str + ">", nil
-}
-
-func ( s *HtmlTh )Str() ( string, error ) {
-	return  "<th>" + s.Hd + "</td>", nil
-}
-
-func ( s *HtmlTd )Str() ( string, error ) {
-	str :=""
-	if len( s.Cls ) > 0 {
+	if len(s.Placeholder) > 0 {
+		str += " placeholder=\"" + s.Placeholder + "\""
+	}
+	if s.Size > 0 {
+		str += " size=\"" + strconv.Itoa(s.Size) + "\""
+	}
+	if s.Minlength > 0 {
+		str += " minlength=\"" + strconv.Itoa(s.Minlength) + "\""
+	}
+	if s.Maxlength > 0 {
+		str += " maxlength=\"" + strconv.Itoa(s.Maxlength) + "\""
+	}
+	if len(s.Cls) > 0 {
 		str += " class=\"" + s.Cls + "\""
 	}
-	return  "<td" + str + ">" + s.Dt + "</td>", nil
+	if len(s.Id) > 0 {
+		str += " id=\"" + s.Id + "\""
+	}
+	if len(s.Value) > 0 {
+		str += " value=\"" + s.Value + "\""
+	}
+	if s.Required {
+		str += " required"
+	}
+	if s.Disabled {
+		str += " disabled"
+	}
+	if s.Checked {
+		str += " checked"
+	}
+	return "<input " + str + ">\n"
 }
 
-func ( row *HtmlTr )Str() ( string, error ) {
+func (s *HtmlTh) Str() (string, error) {
+	return "<th>" + s.Hd + "</th>\n", nil
+}
+
+func (s *HtmlTh) ToStr() string {
+	return "<th>" + s.Hd + "</th>\n"
+}
+
+func (s *HtmlTd) Str() (string, error) {
+	return s.ToStr(), nil
+}
+
+func (s *HtmlTd) ToStr() string {
+	str := ""
+	if len(s.Cls) > 0 {
+		str += " class=\"" + s.Cls + "\""
+	}
+	return "<td" + str + ">" + s.Dt + "</td>\n"
+}
+
+func (row *HtmlTr) Str() (string, error) {
+	return row.ToStr(), nil
+}
+
+func (row *HtmlTr) ToStr() string {
 	str, buf := "", ""
 	var err error
 	if row.Hd != nil {
-		if buf, err = row.Hd.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTr.Str:wpg.HtmlTh.Str failure %v.\t\n", err ) }
+		if buf, err = row.Hd.Str(); err != nil {
+			log.Printf("wpg.HtmlTr.Str:wpg.HtmlTh.Str failure:HtmlTr:%+v\t\n%v", row, err)
+		}
 		str += buf
 	}
 	var v HtmlTd
 	for _, v = range row.Row {
-		if buf, err = v.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTr.Str:wpg.HtmlTd.Str failure %v.\t\n", err ) }
+		if buf, err = v.Str(); err != nil {
+			log.Printf("wpg.HtmlTr.Str:wpg.HtmlTd.Str failure:HtmlTr:%+v\t\n%v", row, err)
+		}
 		str += buf
 	}
-	return "<tr>" + str + "</tr>", nil
+	return "<tr>" + str + "</tr>\n"
 }
 
-func ( cpt *HtmlCpt )Str() ( string, error ) {
+func (cpt *HtmlCpt) Str() (string, error) {
+	return cpt.ToStr(), nil
+}
+
+func (cpt *HtmlCpt) ToStr() string {
 	str := ""
-	switch ( cpt.Align ) {
-		case HTML_ALIGN_NONE:	// なにもしない
-		case HTML_ALIGN_TOP: str = " " + HTML_ALIGN + "=\"top\""
-		case HTML_ALIGN_BOTTOM: str = " " + HTML_ALIGN + "=\"bottom\""
-		case HTML_ALIGN_LEFT: str = " " + HTML_ALIGN + "=\"left\""
-		case HTML_ALIGN_RIGHT: str = " " + HTML_ALIGN + "=\"right\""
-		default: return "", fmt.Errorf("wpg.HtmlCpt.Str:Invalid align:%d.", cpt.Align )
+	switch cpt.Align {
+	case HTML_ALIGN_NONE: // なにもしない
+	case HTML_ALIGN_TOP:
+		str = " " + HTML_ALIGN + "=\"top\""
+	case HTML_ALIGN_BOTTOM:
+		str = " " + HTML_ALIGN + "=\"bottom\""
+	case HTML_ALIGN_LEFT:
+		str = " " + HTML_ALIGN + "=\"left\""
+	case HTML_ALIGN_RIGHT:
+		str = " " + HTML_ALIGN + "=\"right\""
+	default:
+		log.Printf("wpg.HtmlCpt.Str:Invalid align:%d HtmlCpt:%+v", cpt.Align, cpt)
 	}
-	return  "<caption" + str + ">" + cpt.Title + "</caption>", nil
+	return "<caption" + str + ">" + cpt.Title + "</caption>\n"
 }
 
-func ( tbl *HtmlTbl )Str() ( string, error ) {
+func (tbl *HtmlTbl) Str() (string, error) {
+	return tbl.ToStr(), nil
+}
+
+func (tbl *HtmlTbl) ToStr() string {
 	str, buf := "<table", ""
 	var err error
-	if len( tbl.Cls ) > 0 {
+	if len(tbl.Cls) > 0 {
 		str += " class=\"" + tbl.Cls + "\""
 	}
 	str += ">"
 
 	if tbl.Cpt != nil {
-		if buf, err = tbl.Cpt.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTbl.Str:wpg.HtmlCpt.Str failure %v.\t\n", err ) }
+		if buf, err = tbl.Cpt.Str(); err != nil {
+			log.Printf("wpg.HtmlTbl.Str:wpg.HtmlCpt.Str failure:HtmlTbl:%+v\t\n%v", tbl, err)
+		}
 		str += buf
 	}
 
 	var h HtmlTh
 	for _, h = range tbl.Hdrs {
-		if buf, err = h.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTbl.Str:wpg.HtmlTh.Str failure %v.\t\n", err ) }
+		if buf, err = h.Str(); err != nil {
+			log.Printf("wpg.HtmlTbl.Str:wpg.HtmlTh.Str failure:HtmlTbl:%+v\t\n%v", tbl, err)
+		}
 		str += buf
 	}
 
 	var v HtmlTr
 	for _, v = range tbl.Bdy {
-		if buf, err = v.Str(); err != nil { return "", fmt.Errorf( "wpg.HtmlTbl.Str:wpg.HtmlTr.Str failure %v.\t\n", err ) }
+		if buf, err = v.Str(); err != nil {
+			log.Printf("wpg.HtmlTbl.Str:wpg.HtmlTr.Str failure:HtmlTbl:%+v\t\n%v", tbl, err)
+		}
 		str += buf
 	}
-	return str + "</table>", nil
+	return str + "</table>\n"
 }
 
-func ( a *HtmlA )Str() ( string, error ) {
+func (a *HtmlA) Str() (string, error) {
+	return a.ToStr(), nil
+}
+
+func (a *HtmlA) ToStr() string {
 	str := ""
 	first := true
 	for key, v := range a.Args {
@@ -475,15 +617,99 @@ func ( a *HtmlA )Str() ( string, error ) {
 	}
 	str += "\""
 
-	if len( a.Id  ) > 0 {
+	if len(a.Id) > 0 {
 		str += " id=\"" + a.Id + "\""
 	}
-	if len( a.Cls  ) > 0 {
+	if len(a.Cls) > 0 {
 		str += " class=\"" + a.Cls + "\""
 	}
 	if a.Disable {
 		str += " disabled"
 	}
 
-	return "<a href=\"/" + a.Path + str + ">" + a.Cpt + "</a>", nil
+	return "<a href=\"/" + a.Path + str + ">" + a.Cpt + "</a>\n"
+}
+
+func (d *HtmlDiv) Str() (string, error) {
+	return d.ToStr(), nil
+}
+
+func (d *HtmlDiv) ToStr() string {
+	// fmt.Println("Start HtmlDiv.ToStr()")
+	// defer fmt.Println("End HtmlDiv.ToStr()")
+	// fmt.Printf("HtmlDiv.Text:%q\n", d.Text)
+	str := d.Text
+	s := ""
+	// fmt.Printf("HtmlDiv.Tags:%v\n", d.Tags)
+	for _, v := range d.Tags {
+		str += v.ToStr()
+	}
+	id := ""
+	class := ""
+	// fmt.Printf("HtmlDiv.Tags:%v\n", d.Id)
+	for _, s = range d.Id {
+		id += " id=\"" + s + "\""
+	}
+	// fmt.Printf("HtmlDiv.Tags:%v\n", d.Class)
+	for _, s = range d.Class {
+		class += " class=\"" + s + "\""
+	}
+	return "<div" + id + class + ">" + str + "</div>"
+}
+
+func (t *HtmlOption) Str() (string, error) {
+	return t.ToStr(), nil
+}
+
+func (t *HtmlOption) ToStr() string {
+	str := ""
+	if len(t.Value) > 0 {
+		str += " value=\"" + t.Value + "\""
+	}
+	if t.Selected {
+		str += " selected"
+	}
+	if len(t.Label) > 0 {
+		str += " label=\"" + t.Label + "\""
+	}
+	if t.Disabled {
+		str += " disabled"
+	}
+	return "<option" + str + "> " + t.Caption + "</option>\n"
+}
+
+func (t *HtmlSelect) Str() (string, error) {
+	return t.ToStr(), nil
+}
+
+func (t *HtmlSelect) ToStr() string {
+	str := "<select"
+	if len(t.Name) > 0 {
+		str += " name=\"" + t.Name + "\""
+	}
+	if t.Size > 0 {
+		str += " size=\"" + strconv.Itoa(t.Size) + "\""
+	}
+	if t.Multiple {
+		str += " multipled"
+	}
+	if t.Disabled {
+		str += " disabled"
+	}
+	s := ""
+	id := ""
+	for _, s = range t.Id {
+		id += " id=\"" + s + "\""
+	}
+	str += id
+	class := ""
+	for _, s = range t.Class {
+		class += " class=\"" + s + "\""
+	}
+	str += class + ">\n"
+	for _, v := range t.Body {
+		// fmt.Printf("Select name:%q Body:%v\n", t.Name, v)
+		str += v.ToStr()
+	}
+	return str + "</select>\n"
 }
