@@ -148,8 +148,8 @@ func EmbdCreate(files *embed.FS, root, file, path, static string, funcMap templa
 					return nil, fmt.Errorf("wpg.EmbdCreate:number of item is too short. item num:%d, s:%q.\n\t%v", num, s, err)
 				}
 				key = strings.Trim(key, "\"")
-				mgr.tmpls[key] = template.Must(template.New(tmplPath+page).Funcs(funcMap).ParseFiles(
-					tmplPath+"/"+page, tmplPath+"/"+head, tmplPath+"/"+header,
+				mgr.tmpls[key] = template.Must(template.New(tmplPath+"/"+page).Funcs(funcMap).ParseFS(
+					files, tmplPath+"/"+page, tmplPath+"/"+head, tmplPath+"/"+header,
 					tmplPath+"/"+nav, tmplPath+"/"+main, tmplPath+"/"+footer, tmplStatic))
 			}
 		}
