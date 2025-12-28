@@ -11,17 +11,6 @@ type FileLine struct {
 	Next *FileLine
 }
 
-type BTreeItem interface {
-	Compare(BTreeItem) (bool, error)
-}
-
-type BTree struct {
-	it BTreeItem
-	p  *BTree
-	r  *BTree
-	l  *BTree
-}
-
 func NewFileItem(text string, index int, src interface{}) (interface{}, error) {
 	return &text, nil
 }
@@ -58,80 +47,4 @@ func CreateFileLines(file string, src interface{}, New func(string, int, interfa
 		return nil, 0, fmt.Errorf("gim.CreateFileLines:os.Open failure file:%q.\n\t%v", file, err)
 	}
 	return first, cnt, nil
-}
-
-func IntMin(a, b int) int {
-	if a < b {
-		return a
-	} else {
-		return b
-	}
-}
-
-func Sort(src, dst []BTreeItem) error {
-	var root, t *BTree = nil, nil
-	for i, v := range src {
-		if root == nil {
-			root = &BTree{it: src[i], p: nil, l: nil, r: nil}
-		} else {
-			t = root
-			for {
-				if t.it == nil {
-					t.it = src[i]
-					break
-				} else if more, err := v.Compare(t.it); err != nil {
-					return fmt.Errorf("gnocchi.gim.Sort failure\n\t%v", err)
-				} else if more {
-					if t.r == nil {
-						t.r = &BTree{it: src[i], p: t, l: nil, r: nil}
-						break
-					}
-					t = t.r
-				} else {
-					if t.l == nil {
-						t.l = &BTree{it: src[i], p: t, l: nil, r: nil}
-						break
-					}
-					t = t.l
-				}
-			}
-		}
-	}
-	index := 0
-	t = root
-/*
-	for {
-		if t.r != nil {
-			t = t.r
-			fmt.Println("gnocchi.gim.Sort move right")
-		} else {
-			dst[index] = t.it
-			fmt.Printf("gnocchi.gim.Sort index:%d t.it:%+v\n", index, t.it)
-			index++
-			if t.l != nil {
-				t = t.l
-				fmt.Println("gnocchi.gim.Sort move left")
-			} else if t.p != nil {
-				t = t.p
-				fmt.Println("gnocchi.gim.Sort move previous")
-			} else {
-				fmt.Println("gnocchi.gim.Sort move exit")
-				break
-			}
-		}
-	}
-*/
-	root.set(dst, &index)
-	return nil
-}
-
-func (t *BTree) set(s []BTreeItem, index *int) {
-	if t.r != nil {
-		t.r.set(s, index)
-	}
-	s[*index] = t.it
-	*index++
-	if t.l != nil {
-		t.l.set(s, index)
-	}
 }

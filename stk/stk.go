@@ -1,11 +1,14 @@
 package stk
 
 import (
+	"bufio"
+	"embed"
 	"fmt"
 	"io"
 	"log"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/dontbury/gnocchi/gim"
 )
@@ -50,23 +53,13 @@ type IdName struct {
 	Name string
 }
 
-func newCategory(text string, index int, src interface{}) (interface{}, error) {
-	var c ctgry
-	if num, err := fmt.Sscanf(text, "%s %s", &c.key, &c.filename); err != nil {
-		return nil, fmt.Errorf("stk.Create:fmt.Sscanf failure num num:%d, text:%q.\n\t%v", num, text, err)
-	} else if num < NUM_STRMGR_PARAM {
-		return nil, fmt.Errorf("stk.Create:number of item is too short. item num:%d, buf:%q.\n\t%v", num, text, err)
-	}
-	return &c, nil
-}
-
-func newItem(text string, index int, src interface{}) (interface{}, error) {
+func splitIdStr(text string) (int, string, error) {
 	txt := []rune(text)
 	sz := len(text)
 	dst := make([]rune, sz)
 	mode := STRMODE_FIRST_SEPARATE
-	idx, n := 0, 0
-	var it item
+	id, idx, n := 0, 0, 0
+	var str string
 	var err error
 	for i, r := range txt {
 		switch mode {
@@ -74,30 +67,30 @@ func newItem(text string, index int, src interface{}) (interface{}, error) {
 			if r >= 0x30 && r <= 0x39 {
 				mode = STRMODE_ID
 				if n, err = strconv.Atoi(string(r)); err != nil {
-					return nil, fmt.Errorf("stk.newItem:Atoi failure r:%x, i:%d, sz:%d, err:%v, mode:%d, i:%d, txt:%q", r, i, sz, err, mode, i, txt)
+					return id, str, fmt.Errorf("stk.splitIdStr:Atoi failure r:%x, i:%d, sz:%d, err:%v, mode:%d, i:%d, txt:%q", r, i, sz, err, mode, i, txt)
 				}
-				it.id = int(n)
+				id = int(n)
 			} else if r != 0x20 {
-				return nil, fmt.Errorf("stk.newItem:Invalid rune r:%x, i:%d, sz:%d, mode:%d, i:%d, txt:%q", r, i, sz, mode, i, txt)
+				return id, str, fmt.Errorf("stk.splitIdStr:Invalid rune r:%x, i:%d, sz:%d, mode:%d, i:%d, txt:%q", r, i, sz, mode, i, txt)
 			}
 		case STRMODE_ID:
 			if r >= 0x30 && r <= 0x39 {
 				if n, err = strconv.Atoi(string(r)); err != nil {
-					return nil, fmt.Errorf("stk.newItem:Atoi failure r:%x, i:%d, sz:%d, err:%v, mode:%d, i:%d, txt:%q", r, i, sz, err, mode, i, txt)
-				} else if it.id > math.MaxInt64/10 {
-					return nil, fmt.Errorf("stk.newItem:id is too large id:%d, r:%x, i:%d, sz:%d, mode:%d, i:%d, txt:%q", it.id, r, i, sz, mode, i, txt)
+					return id, str, fmt.Errorf("stk.splitIdStr:Atoi failure r:%x, i:%d, sz:%d, err:%v, mode:%d, i:%d, txt:%q", r, i, sz, err, mode, i, txt)
+				} else if id > math.MaxInt64/10 {
+					return id, str, fmt.Errorf("stk.splitIdStr:id is too large id:%d, r:%x, i:%d, sz:%d, mode:%d, i:%d, txt:%q", id, r, i, sz, mode, i, txt)
 				}
-				it.id = it.id*10 + int(n)
+				id = id*10 + int(n)
 			} else if r == 0x20 {
 				mode = STRMODE_SECOUND_SEPARATE
 			} else {
-				return nil, fmt.Errorf("stk.newItem:Invalid rune r:%x, it.id:%d, i:%d, sz:%d, mode:%d, i:%d, txt:%q", r, it.id, i, sz, mode, i, txt)
+				return id, str, fmt.Errorf("stk.splitIdStr:Invalid rune r:%x, it.id:%d, i:%d, sz:%d, mode:%d, i:%d, txt:%q", r, id, i, sz, mode, i, txt)
 			}
 		case STRMODE_SECOUND_SEPARATE:
 			if r == '"' {
 				mode = STRMODE_BODY
 			} else if r != 0x20 {
-				return nil, fmt.Errorf("stk.newItem:Invalid rune r:%x, i:%d, sz:%d, mode:%d, txt:%q", r, i, sz, mode, txt)
+				return id, str, fmt.Errorf("stk.splitIdStr:Invalid rune r:%x, i:%d, sz:%d, mode:%d, txt:%q", r, i, sz, mode, txt)
 			}
 		case STRMODE_BODY:
 			switch r {
@@ -115,22 +108,39 @@ func newItem(text string, index int, src interface{}) (interface{}, error) {
 				idx++
 				mode = STRMODE_BODY
 			} else {
-				return nil, fmt.Errorf("stk.newItem:Invalid escape r:%x, i:%d, sz:%d, mode:%d, i:%d, txt:%q", r, i, sz, mode, i, txt)
+				return id, str, fmt.Errorf("stk.splitIdStr:Invalid escape r:%x, i:%d, sz:%d, mode:%d, i:%d, txt:%q", r, i, sz, mode, i, txt)
 			}
 		case STRMODE_END_SEPARATE:
 			if r != ' ' {
-				return nil, fmt.Errorf("stk.newItem:Invalid end separate r:%x, i:%d, sz:%d, mode:%d, i:%d, txt:%q", r, i, sz, mode, i, txt)
+				return id, str, fmt.Errorf("stk.splitIdStr:Invalid end separate r:%x, i:%d, sz:%d, mode:%d, i:%d, txt:%q", r, i, sz, mode, i, txt)
 			}
 		}
 	}
 	if mode == STRMODE_END_SEPARATE {
-		it.str = string(dst[:idx])
+		str = string(dst[:idx])
 		//	fmt.Printf( "it:%v\n", it )
 	} else {
-		return nil, fmt.Errorf("stk.newItem:Invalid end of line sz:%d, mode:%d, txt:%q", sz, mode, txt)
+		return id, str, fmt.Errorf("stk.splitIdStr:Invalid end of line sz:%d, mode:%d, txt:%q", sz, mode, txt)
 	}
+	return id, str, nil
+}
 
-	return &it, nil
+func newItem(text string, index int, src interface{}) (interface{}, error) {
+	if id, str, err := splitIdStr(text); err != nil {
+		return nil, err
+	} else {
+		return &item{id: id, str: str}, nil
+	}
+}
+
+func newCategory(text string, index int, src interface{}) (interface{}, error) {
+	var c ctgry
+	if num, err := fmt.Sscanf(text, "%s %s", &c.key, &c.filename); err != nil {
+		return nil, fmt.Errorf("stk.Create:fmt.Sscanf failure num num:%d, text:%q.\n\t%v", num, text, err)
+	} else if num < NUM_STRMGR_PARAM {
+		return nil, fmt.Errorf("stk.Create:number of item is too short. item num:%d, buf:%q.\n\t%v", num, text, err)
+	}
+	return &c, nil
 }
 
 func Create(root, path, file string) (*StringStocker, error) {
@@ -151,6 +161,50 @@ func Create(root, path, file string) (*StringStocker, error) {
 			return nil, fmt.Errorf("stk.Create:stk.appendCategory failure num:%d, c:%v, file:%q.\n\t%v", num, c, file, err)
 		}
 		line = line.Next
+	}
+	return stkr, nil
+}
+
+func EmbdCreate(files *embed.FS, root, path, file string) (*StringStocker, error) {
+	log.Printf("Start stk.EmbdCreate root:%q path:%q file:%q.", root, path, file)
+	defer log.Printf("End stk.EmbdCreate root:%q path:%q file:%q.", root, path, file)
+
+	byte, err := files.ReadFile(root + "/" + path + "/" + file)
+	if err != nil {
+		return nil, fmt.Errorf("stk.EmbdCreate:ReadFile failure root:%q path:%q file:%q.\n\t%v", root, path, file, err)
+	}
+	var s, key, filename, str string
+	var id int
+	stkr := &StringStocker{ctry: make(map[string]*category)}
+	scanner := bufio.NewScanner(strings.NewReader(string(byte)))
+	for scanner.Scan() {
+		s = scanner.Text()
+		if len(s) > 0 { // 空白行（末尾など）なら参照しない
+			if s[0] != '#' { // 行頭が#ならコメント行なので参照しない
+				if num, err := fmt.Sscanf(s, "%s %s", &key, &filename); err != nil {
+					return nil, fmt.Errorf("stk.EmbdCreate:fmt.Sscanf failure num num:%d, text:%q.\n\t%v", num, s, err)
+				} else if num < NUM_STRMGR_PARAM {
+					return nil, fmt.Errorf("stk.EmbdCreate:number of item is too short. item num:%d, buf:%q.\n\t%v", num, s, err)
+				}
+				var c category
+				c.smp = make(map[int]string)
+				byte, err = files.ReadFile(root + "/" + path + "/" + filename)
+				sc := bufio.NewScanner(strings.NewReader(string(byte)))
+				for sc.Scan() {
+					s = sc.Text()
+					if len(s) > 0 { // 空白行（末尾など）なら参照しない
+						if s[0] != '#' { // 行頭が#ならコメント行なので参照しない
+							if id, str, err = splitIdStr(s); err != nil {
+								return nil, fmt.Errorf("stk.EmbdCreate:splitIdStr failure text:%q.\n\t%v", s, err)
+							} else {
+								c.smp[id] = str
+							}
+						}
+					}
+				}
+				stkr.ctry[key] = &c
+			}
+		}
 	}
 	return stkr, nil
 }

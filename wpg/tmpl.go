@@ -1,7 +1,10 @@
 package wpg
 
 import (
+	"bufio"
+	"embed"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,7 +16,12 @@ import (
 
 const (
 	TMPL_PARAM_KEY = iota
-	TMPL_PARAM_FILE
+	TMPL_PARAM_PAGE
+	TMPL_PARAM_HEAD
+	TMPL_PARAM_HEADER
+	TMPL_PARAM_NAV
+	TMPL_PARAM_MAIN
+	TMPL_PARAM_FOOTER
 	NUM_TMPL_PARAM
 )
 
@@ -114,6 +122,38 @@ func Create(root, file, path, static string, funcMap template.FuncMap) (*TmplMap
 		line = line.Next
 	}
 
+	return mgr, nil
+}
+
+func EmbdCreate(files *embed.FS, root, file, path, static string, funcMap template.FuncMap) (*TmplMap, error) {
+	log.Printf("Start wpg.EmbdCreate root:%q file:%q path:%q static:%q.", root, file, path, static)
+	defer log.Printf("End wpg.EmbdCreate root:%q file:%q path:%q static:%q.", root, file, path, static)
+	byte, err := files.ReadFile(root + "/" + file)
+	if err != nil {
+		return nil, fmt.Errorf("wpg.EmbdCreate:ReadFile failure root:%q path:%q file:%q.\n\t%v", root, path, file, err)
+	}
+	var s, key, page, head, header, nav, main, footer string
+	var num int
+	mgr := &TmplMap{tmpls: make(map[string]*template.Template)}
+	tmplPath, tmplStatic := root+"/"+path, root+"/"+path+"/"+static
+	scanner := bufio.NewScanner(strings.NewReader(string(byte)))
+	for scanner.Scan() {
+		s = scanner.Text()
+		if len(s) > 0 { // 空白行（末尾など）なら参照しない
+			if s[0] != '#' { // 行頭が#ならコメント行なので参照しない
+				num, err = fmt.Sscanf(s, "%s %s %s %s %s %s %s", &key, &page, &head, &header, &nav, &main, &footer)
+				if err != nil {
+					return nil, fmt.Errorf("wpg.EmbdCreate:fmt.Sscanf failure num num:%d, s:%q.\n\t%v", num, s, err)
+				} else if num < NUM_TMPL_PARAM {
+					return nil, fmt.Errorf("wpg.EmbdCreate:number of item is too short. item num:%d, s:%q.\n\t%v", num, s, err)
+				}
+				key = strings.Trim(key, "\"")
+				mgr.tmpls[key] = template.Must(template.New(tmplPath+page).Funcs(funcMap).ParseFiles(
+					tmplPath+"/"+page, tmplPath+"/"+head, tmplPath+"/"+header,
+					tmplPath+"/"+nav, tmplPath+"/"+main, tmplPath+"/"+footer, tmplStatic))
+			}
+		}
+	}
 	return mgr, nil
 }
 
