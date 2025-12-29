@@ -25,7 +25,7 @@ func Sort(src, dst []Node) error {
 					t.it = src[i]
 					break
 				} else if more, err := v.Compare(t.it); err != nil {
-					return fmt.Errorf("gnocchi.gim.Sort failure\n\t%v", err)
+					return fmt.Errorf("gnocchi.bitbyte.Sort failure\n\t%v", err)
 				} else if more {
 					if t.r == nil {
 						t.r = &BTree{it: src[i], p: t, l: nil, r: nil}
