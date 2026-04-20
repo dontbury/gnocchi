@@ -33,11 +33,11 @@ type TmplMap struct {
 
 type TmplFuncArgElm struct {
 	AtFirst bool
-	Seq     int
 	Req     *http.Request
 	Path    *Paths
 	Arg     *url.Values
 	Conn    *Conn
+	Others  interface{}
 	Param01 string
 	Param02 string
 	Param03 string
@@ -231,76 +231,6 @@ func TmplFunc(tmplFunc func(arg *TmplFuncArg) error, arg *TmplFuncArg) (string, 
 		return "", fmt.Errorf("wpg.TmplFunc Invalid arg.Index:%v arg:%#v", arg.Index, arg)
 	}
 	return str, nil
-}
-
-func (elm *TmplFuncArgElm) IncSet(p string) error {
-	switch elm.Seq {
-	case 1:
-		elm.Param01 = p
-	case 2:
-		elm.Param02 = p
-	case 3:
-		elm.Param03 = p
-	case 4:
-		elm.Param04 = p
-	case 5:
-		elm.Param05 = p
-	case 6:
-		elm.Param06 = p
-	case 7:
-		elm.Param07 = p
-	case 8:
-		elm.Param08 = p
-	case 9:
-		elm.Param09 = p
-	case 10:
-		elm.Param10 = p
-	case 11:
-		elm.Param11 = p
-	case 12:
-		elm.Param12 = p
-	case 13:
-		elm.Param13 = p
-	case 14:
-		elm.Param14 = p
-	case 15:
-		elm.Param15 = p
-	case 16:
-		elm.Param16 = p
-	case 17:
-		elm.Param17 = p
-	case 18:
-		elm.Param18 = p
-	case 19:
-		elm.Param19 = p
-	case 20:
-		elm.Param20 = p
-	case 21:
-		elm.Param11 = p
-	case 22:
-		elm.Param12 = p
-	case 23:
-		elm.Param13 = p
-	case 24:
-		elm.Param14 = p
-	case 25:
-		elm.Param15 = p
-	case 26:
-		elm.Param16 = p
-	case 27:
-		elm.Param17 = p
-	case 28:
-		elm.Param18 = p
-	case 29:
-		elm.Param19 = p
-	case 30:
-		elm.Param20 = p
-	default:
-		return fmt.Errorf("wpg.TmplFuncArgElm.IncSet Invalid Seq:%v", elm.Seq)
-	}
-	elm.Seq++
-
-	return nil
 }
 
 func (elm *TmplFuncArgElm) FormValueInt(nm string) (int, error) {

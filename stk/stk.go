@@ -144,7 +144,7 @@ func newCategory(text string, index int, src interface{}) (interface{}, error) {
 }
 
 func Create(root, path, file string) (*StringStocker, error) {
-	log.Printf("Start stk.Create root:%q paht:%q file:%q.", root, path, file)
+	log.Printf("Start stk.Create root:%q path:%q file:%q.", root, path, file)
 	defer log.Printf("End stk.Create root:%q path:%q file:%q.", root, path, file)
 
 	line, num, err := gim.CreateFileLines(root+path+file, root+path, newCategory)

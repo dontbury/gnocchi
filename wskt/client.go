@@ -6,6 +6,8 @@ import (
 	"time"
 	"io"
 
+	"github.com/dontbury/gnocchi/bitbyte"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -72,7 +74,7 @@ func ( c *Client ) receiveWebSocket() {
 			log.Printf( "wskt.receiveWebSocket c.Conn.ReadMessage() Invalid MessageType:%d id:%d.", messageType, c.id )
 			loop = false	// ループから抜ける
 		} else {
-			wsBuf := WSBuf{ index: 0, inc:0, buf: &buf }
+			wsBuf := WSBuf{ Br: bitbyte.BitRow{ Index: 0, Inc: 0, Body: nil } }
 			if err = c.exC.ReceiveWebsocket( c.id, &wsBuf ); err != nil {
 				log.Printf( "wskt.receiveWebSocket.\n\t%+v", err )
 //				loop = false	// ループから抜ける

@@ -10,8 +10,8 @@ import (
 
 const (
 	URL_PATH_DEPTH0 = iota
-	URL_PATH_DEPTH1
-	URL_PATH_DEPTH2
+	URL_PATH_DEPTH01
+	URL_PATH_DEPTH02
 )
 
 const (
@@ -193,7 +193,7 @@ type HtmlTbl struct {
 }
 
 type HtmlA struct {
-	Path    string
+	Path    []string
 	Args    url.Values
 	Cpt     string
 	Id      string
@@ -202,6 +202,13 @@ type HtmlA struct {
 }
 
 type HtmlDiv struct {
+	Tags  []HtmlTag
+	Text  string
+	Class []string
+	Id    []string
+}
+
+type HtmlSpan struct {
 	Tags  []HtmlTag
 	Text  string
 	Class []string
@@ -603,6 +610,9 @@ func (a *HtmlA) Str() (string, error) {
 
 func (a *HtmlA) ToStr() string {
 	str := ""
+	for _, v := range a.Path {
+		str += "/" + v
+	}
 	first := true
 	for key, v := range a.Args {
 		for _, s := range v {
@@ -627,7 +637,7 @@ func (a *HtmlA) ToStr() string {
 		str += " disabled"
 	}
 
-	return "<a href=\"/" + a.Path + str + ">" + a.Cpt + "</a>\n"
+	return "<a href=\"" + str + ">" + a.Cpt + "</a>\n"
 }
 
 func (d *HtmlDiv) Str() (string, error) {
@@ -655,6 +665,27 @@ func (d *HtmlDiv) ToStr() string {
 		class += " class=\"" + s + "\""
 	}
 	return "<div" + id + class + ">" + str + "</div>"
+}
+
+func (d *HtmlSpan) Str() (string, error) {
+	return d.ToStr(), nil
+}
+
+func (d *HtmlSpan) ToStr() string {
+	str := d.Text
+	s := ""
+	for _, v := range d.Tags {
+		str += v.ToStr()
+	}
+	id := ""
+	class := ""
+	for _, s = range d.Id {
+		id += " id=\"" + s + "\""
+	}
+	for _, s = range d.Class {
+		class += " class=\"" + s + "\""
+	}
+	return "<span" + id + class + ">" + str + "</span>"
 }
 
 func (t *HtmlOption) Str() (string, error) {

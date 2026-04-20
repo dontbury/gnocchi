@@ -63,23 +63,18 @@ func (ds *DStore) IDKeyGetMulti(kind string, ids []int64, src interface{}) ([]*d
 func (ds *DStore) IncompleteKeyPut(kind string, src interface{}) (int64, error) {
 	newkey := datastore.IncompleteKey(kind, nil)
 	if key, err := ds.Client.Put(ds.Ctx, newkey, src); err != nil {
-		log.Fatalf("IncompleteKeyPut:Failed to put: %v", err)
-		return key.ID, err
+		return key.ID, fmt.Errorf("DStore.IncompleteKeyPut:datastore.Client.Put failed.\n\t%v", err)
 	} else {
 		return key.ID, nil
 	}
 }
 
-// どうみても返り値のint64の意味がないので暇を見つけて修正する
-func (ds *DStore) IDKeyPut(kind string, id int64, src interface{}) (int64, error) {
+func (ds *DStore) IDKeyPut(kind string, id int64, src interface{}) error {
 	key := datastore.IDKey(kind, id, nil)
-
 	if _, err := ds.Client.Put(ds.Ctx, key, src); err != nil {
-		log.Fatalf("IDKeyPut:Failed to put: %#v", err)
-		return key.ID, err
+		return fmt.Errorf("DStore.IDKeyPut:datastore.Client.Put failed.\n\t%v", err)
 	}
-
-	return key.ID, nil
+	return nil
 }
 
 // propertyにvalueがない場合にのみ、Insertする
@@ -87,6 +82,7 @@ func (ds *DStore) InsertUnique(kind, property, value string, src interface{}) (i
 	log.Printf("Start dstore.InsertUnique kind:%q, property:%q, value:%q, src:%v.", kind, property, value, src)
 
 	var keys []*datastore.Key
+	var id int64
 	exist := false
 	_, err := ds.Client.RunInTransaction(ds.Ctx, func(tx *datastore.Transaction) error {
 		// 存在しているかどうかだけを知りたいので、1つより多く取得する必要はない。
@@ -106,6 +102,7 @@ func (ds *DStore) InsertUnique(kind, property, value string, src interface{}) (i
 			if terr != nil {
 				return fmt.Errorf("dstore.InsertUnique tx.Put failure terr:%v", terr)
 			}
+			id = key.ID
 			return nil
 		} else {
 			exist = true
@@ -120,7 +117,7 @@ func (ds *DStore) InsertUnique(kind, property, value string, src interface{}) (i
 		return -1, fmt.Errorf("dstore.InsertUnique err:%vq", err)
 	}
 
-	return keys[0].ID, nil
+	return id, nil
 }
 
 // valueを持つpropertyが一つだけの場合のみ取得する
