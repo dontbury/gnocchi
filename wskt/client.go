@@ -1,10 +1,11 @@
 package wskt
 
 import (
-	"log"
+	"errors"
 	"fmt"
-	"time"
 	"io"
+	"log"
+	"time"
 
 	"github.com/dontbury/gnocchi/bitbyte"
 
@@ -25,17 +26,15 @@ const (
 	maxMessageSize = 1024
 )
 
-type ExClient interface {
-	ReceiveWebsocket( id int, wsbuf *WSBuf ) error
-	CreateSendCliBuf( buf *[]byte ) ( *[]byte, error )
+type Client interface {
+	ReceiveWebsocket(id int, wsbuf *WSBuf) error
+	CreateSendCliBuf(buf *[]byte) (*[]byte, error)
 
-	CheckSend( check *WSBuf ) ( int, error )
-	OnClose( id int )
+	OnClose(id int)
 	GetHTMLText() string
 }
 
-// Client is a middleman between the websocket connection and the hub.
-type Client struct {
+type ChClient struct {
 	id int
 
 	// The websocket connection.
@@ -44,40 +43,66 @@ type Client struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 
-	exC ExClient
+	cli	Client
 }
 
 // The application runs receiveWebSocket in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func ( c *Client ) receiveWebSocket() {
+func (c *ChClient) receiveWebSocket() {
 	log.Printf("Start wskt.receiveWebSocket.")
 	defer func() {
-		log.Printf( "wskt.receiveWebSocket close id:%d.", c.id )
-//		c.conn.Close()		// この2つはOnCloseの呼び出し先のRemoveClientでリストから外した後にcloseされる
-//		close( c.send )
-		c.exC.OnClose( c.id )
+		log.Printf("wskt.receiveWebSocket close id:%d.", c.id)
+		//		c.conn.Close()		// この2つはOnCloseの呼び出し先のRemoveClientでリストから外した後にcloseされる
+		//		close( c.send )
+		c.cli.OnClose(c.id)
 	}()
-	c.conn.SetReadLimit( maxMessageSize )
-	c.conn.SetReadDeadline( time.Now().Add( pongWait ) )
-	c.conn.SetPongHandler( func( string ) error { c.conn.SetReadDeadline( time.Now().Add( pongWait ) ); return nil })
-	for loop := true ; loop; {
-		messageType, buf, err := c.conn.ReadMessage()
-		log.Printf("wskt.receiveWebSocket c.conn.ReadMessage() id:%d MessageType:%d buf:%v.\n\t%+v", c.id, messageType, buf, err)
-		if err != nil {
-			if websocket.IsUnexpectedCloseError( err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure ) {
-				log.Printf( "error: %v", err )
+	c.conn.SetReadLimit(maxMessageSize)
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	for loop := true; loop; {
+		if messageType, buf, err := c.conn.ReadMessage(); err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+				var ce *websocket.CloseError
+				if errors.As(err, &ce) {
+					fmt.Printf("wskt.ChClient.receiveWebSocket errorClose Code:%d, Text:%q\n", ce.Code, ce.Text)
+				}
+				// log.Printf("error: %v", err)	// これはクライアントが切断したときに発生するエラーなのでログに出す必要はない
+			} else {
+				log.Printf("wskt.receiveWebSocket c.Conn.ReadMessage() id:%d.\n\t%+v", c.id, err)
 			}
-			log.Printf( "wskt.receiveWebSocket c.Conn.ReadMessage() id:%d.\n\t%+v", c.id, err )
-			loop = false	// ループから抜ける
-		} else if messageType != websocket.BinaryMessage {
-			log.Printf( "wskt.receiveWebSocket c.Conn.ReadMessage() Invalid MessageType:%d id:%d.", messageType, c.id )
-			loop = false	// ループから抜ける
+			loop = false // ループから抜ける
 		} else {
-			wsBuf := WSBuf{ Br: bitbyte.BitRow{ Index: 0, Inc: 0, Body: nil } }
-			if err = c.exC.ReceiveWebsocket( c.id, &wsBuf ); err != nil {
-				log.Printf( "wskt.receiveWebSocket.\n\t%+v", err )
-//				loop = false	// ループから抜ける
+			switch messageType {
+			case websocket.TextMessage:
+				log.Printf("wskt.ChClient.receiveWebSocket TextMessage:%q", string(buf))
+			case websocket.BinaryMessage:
+				sz := len(buf)
+				if sz > 0 {
+					wsBuf := WSBuf{Br: bitbyte.BitRow{Index: 0, Inc: 0, Body: make([]uint64, (sz+bitbyte.BYTES_PER_VALUE-1)/bitbyte.BITS_PER_BYTE)}}
+					for i, v := range buf {
+						wsBuf.Br.Body[i>>3] |= uint64(v) << (bitbyte.BITS_PER_BYTE * (i & (bitbyte.BYTES_PER_VALUE - 1)))
+					}
+					log.Printf("wskt.receiveWebSocket c.conn.ReadMessage() buf:[%s].", bitbyte.StrBytes(&buf))
+					log.Printf("wskt.receiveWebSocket c.conn.ReadMessage() wsBuf.Br.Body:[%s].", wsBuf.Br.StrBody())
+					if err = c.cli.ReceiveWebsocket(c.id, &wsBuf); err != nil {
+						log.Printf("wskt.receiveWebSocket.\n\t%+v", err)
+						//				loop = false	// ループから抜ける
+					}
+				} else {
+					log.Printf("wskt.receiveWebSocket c.Conn.ReadMessage() Empty Message id:%d.", c.id)
+					loop = false // ループから抜ける
+				}
+			case websocket.CloseMessage:
+				log.Printf("wskt.ChClient.receiveWebSocket CloseMessage buf:%v", buf)
+				loop = false // 通信が閉じられた場合はerrとして扱われ、ここには来ないらしい
+			case websocket.PingMessage:
+				log.Printf("wskt.ChClient.receiveWebSocket PinMessage buf:%v", buf)
+			case websocket.PongMessage:
+				log.Printf("wskt.ChClient.receiveWebSocket PonMessage buf:%v", buf)
+			default:
+				log.Printf("wskt.receiveWebSocket c.Conn.ReadMessage() Invalid MessageType:%d id:%d.", messageType, c.id)
+				loop = false // ループから抜ける
 			}
 		}
 	}
@@ -87,8 +112,8 @@ func ( c *Client ) receiveWebSocket() {
 // A goroutine running receiveChannel is started for each connection. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func ( c *Client ) receiveChannel() {
-	ticker := time.NewTicker( pingPeriod )
+func (c *ChClient) receiveChannel() {
+	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
 		c.conn.Close()
@@ -96,55 +121,65 @@ func ( c *Client ) receiveChannel() {
 	for {
 		select {
 		case buf, ok := <-c.send:
-log.Printf( "wskt.client receiveChannel c.send buf:%+v.", buf )
-			c.conn.SetWriteDeadline( time.Now().Add( writeWait ) )
+			// log.Printf("wskt.client receiveChannel c.send buf:%+v.", buf)
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
-				c.conn.WriteMessage( websocket.CloseMessage, []byte{} )
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			w, err := c.conn.NextWriter( websocket.BinaryMessage )
+			w, err := c.conn.NextWriter(websocket.BinaryMessage)
 			if err != nil {
 				return
 			}
 
-			if err = c.sendClient( &w, &buf ); err != nil { log.Printf( "wskt.Client.receiveChannel failed.\n\t%v", err ); return }
+			if err = c.sendClient(&w, &buf); err != nil {
+				log.Printf("wskt.ChClient.receiveChannel failed.\n\t%v", err)
+				return
+			}
 
 			// Add queued chat messages to the current websocket message.
-			n := len( c.send )
+			n := len(c.send)
 			for i := 0; i < n; i++ {
 				buf = <-c.send
-				if err = c.sendClient( &w, &buf ); err != nil { log.Printf( "wskt.Client.receiveChannel failed.\n\t%v", err ); return }
+				if err = c.sendClient(&w, &buf); err != nil {
+					log.Printf("wskt.ChClient.receiveChannel failed.\n\t%v", err)
+					return
+				}
 			}
 
 			if err := w.Close(); err != nil {
 				return
 			}
 		case <-ticker.C:
-log.Printf("wskt.client receiveChannel ticker.C.")
-			c.conn.SetWriteDeadline( time.Now().Add( writeWait ) )
-			if err := c.conn.WriteMessage( websocket.PingMessage, nil ); err != nil {
+			log.Printf("wskt.ChClient.receiveChannel ticker.C.")
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 		}
 	}
 }
 
-func ( c *Client ) sendClient( w *io.WriteCloser, buf *[]byte ) error {
-log.Printf( "wskt.Client.sendClient:buf:%+v.", buf )
-	if c.exC != nil {	// Server.RemoveClientが呼ばれるとnilがセットされるので
+func (c *ChClient) sendClient(w *io.WriteCloser, buf *[]byte) error {
+	// log.Printf("wskt.ChClient.sendClient:buf:%+v.", buf)
+	if c.cli != nil { // Server.RemoveClientが呼ばれるとnilがセットされるので
 		// 途中ずっとポインタで受け渡しをして最後にバイト列で送信
-		if send, err := c.exC.CreateSendCliBuf( buf ); err == nil {
-log.Printf( "wskt.Client.sendClient:size:%d send:%+v.", len( *send ), send )
-			(*w).Write( *send )
+		if send, err := c.cli.CreateSendCliBuf(buf); err == nil {
+			// log.Printf("wskt.ChClient.sendClient:size:%d send:%+v.", len(*send), send)
+			(*w).Write(*send)
 		} else {
-			return fmt.Errorf( "wskt.Client.sendClient:ExClient.CreateSendCliBuf failed.\n\t%v", err )
+			return fmt.Errorf("wskt.ChClient.sendClient:Client.CreateSendCliBuf failed.\n\t%v", err)
 		}
 	}
 	return nil
 }
 
-func ( c *Client ) GetHTMLText() string {
-	return fmt.Sprintf("<tr><td scope=\"row\">%d</td>%s</tr>", c.id, c.exC.GetHTMLText() )
+func (c *ChClient) SendChannel(bytes *[]byte) {
+	c.send <- *bytes
+}
+
+func (c *ChClient) GetHTMLText() string {
+	return fmt.Sprintf("<tr><td scope=\"row\">%d</td>%s</tr>", c.id, c.cli.GetHTMLText())
 }
