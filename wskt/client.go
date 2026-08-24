@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/dontbury/gnocchi/bitbyte"
+	"gnocchi/bitbyte"
 
 	"github.com/gorilla/websocket"
 )
