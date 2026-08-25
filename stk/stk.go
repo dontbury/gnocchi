@@ -10,8 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gnocchi/gim"
-	// "github.com/dontbury/gnocchi/gim"
+	"github.com/dontbury/gnocchi/gim"
 )
 
 // 文字列マネージャー設定ファイル列名

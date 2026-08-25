@@ -9,8 +9,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"gnocchi/bitbyte"
-	// "github.com/dontbury/gnocchi/bitbyte"
+	"github.com/dontbury/gnocchi/bitbyte"
 )
 
 const (

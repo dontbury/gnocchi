@@ -1,4 +1,4 @@
-module gnocchi
+module github.com/dontbury/gnocchi
 
 go 1.25.5
 

@@ -7,8 +7,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"gnocchi/bitbyte"
-	// "github.com/dontbury/gnocchi/bitbyte"
+	"github.com/dontbury/gnocchi/bitbyte"
 )
 
 const BUFFER_SIZE = 1024

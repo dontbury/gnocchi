@@ -3,8 +3,7 @@ package wskt
 import (
 	"fmt"
 
-	"gnocchi/bitbyte"
-	// "github.com/dontbury/gnocchi/bitbyte"
+	"github.com/dontbury/gnocchi/bitbyte"
 )
 
 const (
@@ -48,12 +47,12 @@ func (s *WSBuf) CreateWSBSize(index, inc, size int) {
 func (s *WSBuf) CreateWSB(index, headersize int, wsb *WSBuf) error {
 	sz := (headersize + (len(wsb.Br.Body)+1)*bitbyte.BITS_PER_VALUE - 1 - wsb.Br.Index) / bitbyte.BITS_PER_VALUE
 	s.Br = bitbyte.BitRow{Index: index, Inc: 0, Body: make([]uint64, sz)}
-	total := len(wsb.Br.Body)*bitbyte.BITS_PER_VALUE
+	total := len(wsb.Br.Body) * bitbyte.BITS_PER_VALUE
 	var size int
 	var value uint64
 	var err error
 	for idx := wsb.Br.Index; idx < total; {
-		if total - idx < bitbyte.BITS_PER_VALUE {
+		if total-idx < bitbyte.BITS_PER_VALUE {
 			size = total - idx
 		} else {
 			size = bitbyte.BITS_PER_VALUE
@@ -61,7 +60,7 @@ func (s *WSBuf) CreateWSB(index, headersize int, wsb *WSBuf) error {
 		if value, err = wsb.Br.Get(idx, size); err != nil {
 			return fmt.Errorf("WSBuf.CreateWSB:Failed to get bit value.\n\t%+v", err)
 		}
-		if err = s.Br.Set(headersize + idx - wsb.Br.Index, size, value); err != nil {
+		if err = s.Br.Set(headersize+idx-wsb.Br.Index, size, value); err != nil {
 			return fmt.Errorf("WSBuf.CreateWSB:Failed to set bit value.\n\t%+v", err)
 		}
 		idx += size

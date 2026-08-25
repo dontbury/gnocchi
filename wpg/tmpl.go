@@ -11,8 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"gnocchi/gim"
-	// "github.com/dontbury/gnocchi/gim"
+	"github.com/dontbury/gnocchi/gim"
 )
 
 const (
