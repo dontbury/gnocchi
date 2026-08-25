@@ -3,7 +3,7 @@ package wskt
 import (
 	"fmt"
 
-	"gnocchi/bitbyte"
+	"github.com/dontbury/gnocchi/bitbyte"
 )
 
 const (

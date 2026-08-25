@@ -7,9 +7,9 @@ import (
 	"log"
 	"time"
 
-	"gnocchi/bitbyte"
-
 	"github.com/gorilla/websocket"
+
+	"github.com/dontbury/gnocchi/bitbyte"
 )
 
 const (
@@ -43,7 +43,7 @@ type ChClient struct {
 	// Buffered channel of outbound messages.
 	send chan []byte
 
-	cli	Client
+	cli Client
 }
 
 // The application runs receiveWebSocket in a per-connection goroutine. The application

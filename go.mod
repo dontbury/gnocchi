@@ -1,11 +1,11 @@
 module gnocchi
 
-go 1.25.0
+go 1.25.5
 
 require (
 	cloud.google.com/go/datastore v1.26.0
 	cloud.google.com/go/storage v1.65.0
-	github.com/dontbury/gnocchi v1.1.17
+	github.com/dontbury/gnocchi v1.1.18
 	github.com/gorilla/websocket v1.5.3
 	github.com/satori/go.uuid v1.2.0
 )
