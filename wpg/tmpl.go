@@ -89,9 +89,9 @@ func newTemplate(text string, index int, src interface{}) (interface{}, error) {
 	var t tmpl
 	num, err := fmt.Sscanf(text, "%s %s %s %s %s %s %s", &t.key, &t.page, &t.head, &t.header, &t.nav, &t.main, &t.footer)
 	if err != nil {
-		return nil, fmt.Errorf("stk.Create:fmt.Sscanf failure num num:%d, text:%q.\n\t%v", num, text, err)
+		return nil, fmt.Errorf("stk.newTemplate:fmt.Sscanf failure num num:%d, text:%q.\n\t%v", num, text, err)
 	} else if num < NUM_TMPL_PARAM {
-		return nil, fmt.Errorf("stk.Create:number of item is too short. item num:%d, text:%q.\n\t%v", num, text, err)
+		return nil, fmt.Errorf("stk.newTemplate:number of item is too short. item num:%d, text:%q.\n\t%v", num, text, err)
 	}
 	t.key = strings.Trim(t.key, "\"")
 	return &t, nil

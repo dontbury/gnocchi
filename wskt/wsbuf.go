@@ -24,8 +24,16 @@ type WSBuf struct {
 	Br bitbyte.BitRow
 }
 
-func (s *WSBuf) Create(index, size int) {
-	s.Br = bitbyte.BitRow{Index: 0, Inc: 0, Body: make([]uint64, (size+bitbyte.BITS_PER_VALUE-1)/bitbyte.BITS_PER_VALUE)}
+func (s *WSBuf) Create(size int) {
+	s.CreateIdxIc(0, WSKTBUF_INCREMENT, size)
+}
+
+func (s *WSBuf) CreateIdx(index, size int) {
+	s.CreateIdxIc(index, WSKTBUF_INCREMENT, size)
+}
+
+func (s *WSBuf) CreateIdxIc(index, inc, size int) {
+	s.Br = bitbyte.BitRow{Index: index, Inc: inc, Body: make([]uint64, (size+bitbyte.BITS_PER_VALUE-1)/bitbyte.BITS_PER_VALUE)}
 }
 
 func (s *WSBuf) CreateWSBBytes(index, inc int, buf *[]byte) error {
