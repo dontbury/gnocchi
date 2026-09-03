@@ -98,13 +98,13 @@ func (s *WSBuf) Bytes() *[]byte {
 // 送信用に後ろの未使用部分を切り詰めたバッファを取得
 func (s *WSBuf) GetSendBuf() (*[]byte, error) {
 	buf := []byte{}
-	if s.Br.Index < len(s.Br.Body) {
-		sz := (len(s.Br.Body)*bitbyte.BITS_PER_VALUE - s.Br.Index + bitbyte.BITS_PER_BYTE - 1) / bitbyte.BITS_PER_BYTE
-		buf = make([]byte, sz)
+	if s.Br.Index < len(s.Br.Body) * bitbyte.BITS_PER_VALUE {
+		sz := s.Br.Index
+		buf = make([]byte, (sz + bitbyte.BITS_PER_BYTE - 1) / bitbyte.BITS_PER_BYTE)
 		var val uint64
 		var err error
 		for i := 0; len(buf) > i; i++ {
-			if sz > bitbyte.BITS_PER_VALUE {
+			if sz > bitbyte.BITS_PER_BYTE {
 				if val, err = s.Br.Get(i*bitbyte.BITS_PER_BYTE, bitbyte.BITS_PER_BYTE); err != nil {
 					return nil, fmt.Errorf("WSBuf.GetSendBuf:Failed to get bit value.\n\t%+v", err)
 				}
