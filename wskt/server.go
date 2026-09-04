@@ -118,7 +118,6 @@ func (s *ChServer) CollectClients(f func(Client) (bool, error), send *WSBuf) (*[
 		} else if valid {
 			clientes = append(clientes, c)
 			if bytes != nil {
-				log.Printf("wskt.ChServer.CollectClients:Send to clientID:%d len:%d bytes:%v", c.id, len(*bytes), *bytes)
 				c.send <- *bytes
 			}
 		}
@@ -138,7 +137,6 @@ func (s *ChServer) SendServerBroadcast(wsBuf *WSBuf) {
 func (s *ChServer) SendWSBCli(clientID int, buf *[]byte) error {
 	if c, ok := s.clients[clientID]; c != nil && ok {
 		// 途中ずっとポインタで受け渡しをして最後にバイト列で送信
-		log.Printf("wskt.ChServer.SendWSBCli:Send to clientID:%d len:%d bytes:%v", clientID, len(*buf), *buf)
 		c.send <- *buf
 		/*	なぜ上のように書かないのかわからない。ChatGPTは下のようにコメントを補完したが、別にそんなことはないと思う。
 			なぜ上のように途中ずっとポインタで受け渡しをして最後にバイト列で送信するのかというと、WSBuf.GetSendBuf()の中で、後ろの未使用部分を切り詰めたバッファを取得するために、WSBuf内部のBr.Bodyからビット単位で値を取得しているためです。

@@ -167,7 +167,7 @@ func (c *ChClient) sendClient(w *io.WriteCloser, buf *[]byte) error {
 	if c.cli != nil { // Server.RemoveClientが呼ばれるとnilがセットされるので
 		// 途中ずっとポインタで受け渡しをして最後にバイト列で送信
 		if send, err := c.cli.CreateSendCliBuf(buf); err == nil {
-			// log.Printf("wskt.ChClient.sendClient:size:%d send:%+v.", len(*send), send)
+			log.Printf("wskt.ChClient.sendClient:size:%d send:%+v.", len(*send), send)
 			(*w).Write(*send)
 		} else {
 			return fmt.Errorf("wskt.ChClient.sendClient:Client.CreateSendCliBuf failed.\n\t%v", err)
