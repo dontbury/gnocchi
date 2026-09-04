@@ -86,14 +86,11 @@ func (s *WSBuf) SetIndexTail() {
 
 // バッファをそのまま取得
 func (s *WSBuf) Bytes() *[]byte {
-	sz := s.Br.Index
-	if sz > len(s.Br.Body)*bitbyte.BITS_PER_VALUE {
-		sz = len(s.Br.Body) * bitbyte.BITS_PER_VALUE
-	}
-	buf := make([]byte, (sz+bitbyte.BITS_PER_BYTE-1)/bitbyte.BITS_PER_BYTE)
-	for i := 0; sz > 0; i++ {
-		buf[i] = byte((s.Br.Body[i/bitbyte.BYTES_PER_VALUE] >> (bitbyte.BITS_PER_BYTE * (i % bitbyte.BYTES_PER_VALUE))) & 0xFF)
-		sz -= bitbyte.BITS_PER_BYTE
+	buf := make([]byte, len(s.Br.Body)*bitbyte.BYTES_PER_VALUE)
+	for i, v := range s.Br.Body {
+		for j := 0; j < bitbyte.BYTES_PER_VALUE; j++ {
+			buf[i*bitbyte.BYTES_PER_VALUE+j] = byte((v >> (bitbyte.BYTES_PER_VALUE * j)) & 0xFF)
+		}
 	}
 	return &buf
 }
