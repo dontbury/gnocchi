@@ -51,7 +51,7 @@ func (s *WSBuf) CreateWSBBytes(index, inc int, buf *[]byte) error {
 func (s *WSBuf) CreateWSB(index, headersize int, wsb *WSBuf) error {
 	sz := (headersize + (len(wsb.Br.Body)+1)*bitbyte.BITS_PER_VALUE - 1 - wsb.Br.Index) / bitbyte.BITS_PER_VALUE
 	s.Br = bitbyte.BitRow{Index: index, Inc: WSKTBUF_INCREMENT, Body: make([]uint64, sz)}
-	total := len(wsb.Br.Body) * bitbyte.BITS_PER_VALUE - wsb.Br.Index
+	total := len(wsb.Br.Body) * bitbyte.BITS_PER_VALUE
 	var size int
 	var value uint64
 	var err error
