@@ -111,6 +111,7 @@ func (s *ChServer) CollectClients(f func(Client) (bool, error), send *WSBuf) (*[
 		if bytes, err = send.GetSendBuf(); err != nil {
 			return nil, fmt.Errorf("wskt.ChServer.CollectClients:WSBuf.GetSendBuf failure send:%v.\n\t%v", send, err)
 		}
+		log.Printf("wskt.ChServer.CollectClients:send:%v bytes:%v.", send, *bytes)
 	}
 	for _, c := range s.clients {
 		if valid, err = f(c.cli); err != nil {
