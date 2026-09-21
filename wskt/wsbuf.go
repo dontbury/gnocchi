@@ -40,7 +40,7 @@ func (s *WSBuf) CreateWSBBytes(index, inc int, buf *[]byte) error {
 	sz := (len(*buf) + bitbyte.BYTES_PER_VALUE - 1) / bitbyte.BYTES_PER_VALUE
 	s.Br = bitbyte.BitRow{Index: index, Inc: inc, Body: make([]uint64, sz)}
 	var err error
-	for i, v := range *buf { // Indexは先頭に固定したまま、bufの内容をコピーする
+	for i, v := range *buf { // Indexを指定値に固定したまま、bufの内容を先頭からコピーする
 		if err = s.Br.Set(i*bitbyte.BITS_PER_BYTE, bitbyte.BITS_PER_BYTE, uint64(v)); err != nil {
 			return fmt.Errorf("wskt.WSBuf.CreateWSBBytes:bitbyte.BitRow.Append1Byte faile.\n\t%v", err)
 		}
@@ -50,8 +50,8 @@ func (s *WSBuf) CreateWSBBytes(index, inc int, buf *[]byte) error {
 
 func (s *WSBuf) CreateWSB(index, headersize int, wsb *WSBuf) error {
 	sz := (headersize + (len(wsb.Br.Body)+1)*bitbyte.BITS_PER_VALUE - 1 - wsb.Br.Index) / bitbyte.BITS_PER_VALUE
-	s.Br = bitbyte.BitRow{Index: index, Inc: 0, Body: make([]uint64, sz)}
-	total := len(wsb.Br.Body) * bitbyte.BITS_PER_VALUE
+	s.Br = bitbyte.BitRow{Index: index, Inc: WSKTBUF_INCREMENT, Body: make([]uint64, sz)}
+	total := len(wsb.Br.Body) * bitbyte.BITS_PER_VALUE - wsb.Br.Index
 	var size int
 	var value uint64
 	var err error
@@ -81,7 +81,7 @@ func (s *WSBuf) SetIndexHead() {
 }
 
 func (s *WSBuf) SetIndexTail() {
-	s.Br.Index = len(s.Br.Body)
+	s.Br.Index = len(s.Br.Body) * bitbyte.BITS_PER_VALUE
 }
 
 // バッファをそのまま取得
